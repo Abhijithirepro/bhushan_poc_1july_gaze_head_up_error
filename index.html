@@ -12,7 +12,6 @@
 
     #main { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
 
-    /* video */
     #videoBox { position: relative; }
     video     { display: block; width: 480px; height: 360px; background: #000; }
     canvas#overlay {
@@ -21,15 +20,14 @@
       pointer-events: none;
     }
 
-    /* right panel */
     #rightPanel { display: flex; flex-direction: column; gap: 16px; }
 
-    /* ── 3x3 gaze grid — matches worker's 9 gaze states exactly ── */
     /*
-      Layout:
+      9-state grid — exact taxonomy from gaze-detection.worker.ts:
         left_up   | center_up | right_up
         left      | center    | right
         left_down | down      | right_down
+      + away shown separately (no usable iris data)
     */
     #gazeGrid {
       display: grid;
@@ -44,60 +42,44 @@
       border-radius: 4px; color: #555;
       transition: background 0.15s, color 0.15s;
     }
-    .gcell.active            { background: #ff4444; color: #fff; border-color: #cc0000; }
-    .gcell.active.center-cell{ background: #22aa44; color: #fff; border-color: #006622; }
-    .gcell.active.away-cell  { background: #888;    color: #fff; border-color: #555; }
+    .gcell.active             { background: #ff4444; color: #fff; border-color: #cc0000; }
+    .gcell.active.center-cell { background: #22aa44; color: #fff; border-color: #006622; }
 
-    /* raw numbers */
     #rawBox {
       background: #fff; border: 1px solid #ccc; border-radius: 4px;
-      padding: 12px 16px; font-size: 13px; line-height: 2;
-      min-width: 240px;
+      padding: 12px 16px; font-size: 13px; line-height: 2; min-width: 240px;
     }
     #rawBox b { display: inline-block; width: 130px; color: #333; }
 
     #statusLine { font-size: 13px; color: #666; margin-top: 4px; }
 
-    /* ── Analysis result ── */
+    /* Result section */
     #result { display: none; margin-top: 24px; max-width: 860px; }
     #result h3 { margin: 0 0 12px; font-size: 16px; }
-
     #verdictBox {
       padding: 14px 20px; border-radius: 6px; border: 2px solid;
       font-size: 22px; font-weight: bold; letter-spacing: 1px;
       margin-bottom: 16px; display: inline-block;
     }
-    .verdict-ok      { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
-    .verdict-suspect { background: #fff3e0; border-color: #e65100; color: #e65100; }
-    .verdict-cheat   { background: #ffebee; border-color: #b71c1c; color: #b71c1c; }
-    .verdict-unknown { background: #f5f5f5; border-color: #888;    color: #555; }
-
-    #resultGrid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-      margin-bottom: 16px;
-    }
-    .result-section {
-      background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 12px 16px;
-    }
-    .result-section h4 { margin: 0 0 10px; font-size: 13px; color: #444; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-
-    .stat-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-bottom: 1px solid #f5f5f5; }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-label { color: #555; }
-    .stat-val   { font-weight: bold; color: #222; }
-
-    #factorsList { list-style: none; padding: 0; margin: 0; }
-    #factorsList li {
-      font-size: 12px; padding: 4px 0; border-bottom: 1px solid #f5f5f5;
-      display: flex; justify-content: space-between; gap: 8px;
-    }
-    #factorsList li:last-child { border-bottom: none; }
-    .factor-name { color: #333; }
-    .factor-val  { color: #666; font-style: italic; white-space: nowrap; }
-    .factor-trig { color: #c00; font-weight: bold; white-space: nowrap; }
-    .factor-ok   { color: #888; white-space: nowrap; }
-
-    #reasonText { font-size: 13px; color: #555; margin-top: 8px; line-height: 1.6; }
+    .verdict-ok      { background:#e8f5e9; border-color:#2e7d32; color:#2e7d32; }
+    .verdict-suspect { background:#fff3e0; border-color:#e65100; color:#e65100; }
+    .verdict-cheat   { background:#ffebee; border-color:#b71c1c; color:#b71c1c; }
+    .verdict-unknown { background:#f5f5f5; border-color:#888;    color:#555; }
+    #resultGrid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+    .result-section { background:#fff; border:1px solid #ccc; border-radius:4px; padding:12px 16px; }
+    .result-section h4 { margin:0 0 10px; font-size:13px; color:#444; border-bottom:1px solid #eee; padding-bottom:6px; }
+    .stat-row { display:flex; justify-content:space-between; font-size:13px; padding:3px 0; border-bottom:1px solid #f5f5f5; }
+    .stat-row:last-child { border-bottom:none; }
+    .stat-label { color:#555; }
+    .stat-val   { font-weight:bold; color:#222; }
+    #factorsList { list-style:none; padding:0; margin:0; }
+    #factorsList li { font-size:12px; padding:4px 0; border-bottom:1px solid #f5f5f5; display:flex; justify-content:space-between; gap:8px; }
+    #factorsList li:last-child { border-bottom:none; }
+    .factor-name { color:#333; }
+    .factor-val  { color:#666; font-style:italic; white-space:nowrap; }
+    .factor-trig { color:#c00; font-weight:bold; white-space:nowrap; }
+    .factor-ok   { color:#888; white-space:nowrap; }
+    #reasonText  { font-size:13px; color:#555; margin-top:8px; line-height:1.6; }
   </style>
 </head>
 <body>
@@ -112,7 +94,6 @@
 
 <div id="main">
 
-  <!-- Video + overlay -->
   <div id="videoBox">
     <video id="vid" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
@@ -120,13 +101,6 @@
 
   <div id="rightPanel">
 
-    <!--
-      9-state gaze grid — matches worker's gaze taxonomy exactly:
-        left_up   | center_up | right_up
-        left      | center    | right
-        left_down | down      | right_down
-      'away' shown when no face detected
-    -->
     <div id="gazeGrid">
       <div class="gcell" id="cell-left_up">LEFT<br>UP</div>
       <div class="gcell center-cell" id="cell-center_up">CENTER<br>UP</div>
@@ -141,14 +115,16 @@
       <div class="gcell" id="cell-right_down">RIGHT<br>DOWN</div>
     </div>
 
-    <!-- Away indicator (shown separately since it doesn't fit in directional grid) -->
+    <!-- away has no directional cell in the worker's grid, shown as text -->
     <div style="font-size:12px;color:#888;">
-      No face: <span id="awayIndicator" style="font-weight:bold;color:#888;">—</span>
+      No face / away: <span id="awayLabel" style="font-weight:bold;color:#888;">—</span>
     </div>
 
-    <!-- Raw tracked values (from service's extraction) -->
+    <!-- Raw values from service's extraction (same fields service stores in sampleBuffer) -->
     <div id="rawBox">
       <div><b>Gaze State:</b>    <span id="rv-gaze">—</span></div>
+      <div><b>H ratio:</b>       <span id="rv-h">—</span></div>
+      <div><b>V ratio:</b>       <span id="rv-v">—</span></div>
       <div><b>Yaw (L/R):</b>     <span id="rv-yaw">—</span></div>
       <div><b>Pitch (U/D):</b>   <span id="rv-pitch">—</span></div>
       <div><b>Jaw Open:</b>      <span id="rv-jaw">—</span></div>
@@ -163,7 +139,6 @@
   </div>
 </div>
 
-<!-- Analysis result — shown after Stop -->
 <div id="result">
   <h3>Session Analysis Result</h3>
   <div id="verdictBox">—</div>
@@ -176,7 +151,7 @@
       <h4>Gaze Distribution (%)</h4>
       <div id="gazeDistTable"></div>
     </div>
-    <div class="result-section" style="grid-column: 1 / -1;">
+    <div class="result-section" style="grid-column:1/-1;">
       <h4>Indicator Breakdown</h4>
       <ul id="factorsList"></ul>
     </div>
@@ -195,56 +170,38 @@
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 // ══════════════════════════════════════════════════════════════════════════════
-// FROM reading-detection-using-gaze.service.ts — landmark indices + extractors
+// FROM reading-detection-using-gaze.service.ts
+// Landmark indices + three helper methods, copied exactly.
 // ══════════════════════════════════════════════════════════════════════════════
 
-var LMIDX = {
-  NOSE_TIP:        1,
-  LEFT_EYE_OUTER:  33,
-  RIGHT_EYE_OUTER: 263,
-  CHIN:            152,
-  FOREHEAD:        10,
-};
+var LMIDX = { NOSE_TIP: 1, LEFT_EYE_OUTER: 33, RIGHT_EYE_OUTER: 263, CHIN: 152, FOREHEAD: 10 };
 
-// Exact copy from service: estimateYawPitchNose
 function estimateYawPitchNose(landmarks) {
-  var le       = landmarks[LMIDX.LEFT_EYE_OUTER];
-  var re       = landmarks[LMIDX.RIGHT_EYE_OUTER];
-  var nose     = landmarks[LMIDX.NOSE_TIP];
-  var chin     = landmarks[LMIDX.CHIN];
-  var forehead = landmarks[LMIDX.FOREHEAD];
-
+  var le = landmarks[LMIDX.LEFT_EYE_OUTER], re = landmarks[LMIDX.RIGHT_EYE_OUTER];
+  var nose = landmarks[LMIDX.NOSE_TIP], chin = landmarks[LMIDX.CHIN], forehead = landmarks[LMIDX.FOREHEAD];
   if (!le || !re || !nose) return { yawDeg: 0, pitchDeg: 0 };
-
-  var eyeMidX   = (le.x + re.x) / 2;
-  var eyeW      = Math.abs(re.x - le.x) || 1e-6;
-  var yawDeg    = ((nose.x - eyeMidX) / eyeW) * 85;
-
-  var eyeMidY   = (le.y + re.y) / 2;
-  var chinY     = chin     ? chin.y     : 0;
-  var foreheadY = forehead ? forehead.y : 0;
-  var faceH     = Math.abs(chinY - foreheadY) || 1e-6;
-  var pitchDeg  = ((nose.y - eyeMidY) / faceH - 0.12) * 75;
-
+  var eyeMidX  = (le.x + re.x) / 2;
+  var eyeW     = Math.abs(re.x - le.x) || 1e-6;
+  var yawDeg   = ((nose.x - eyeMidX) / eyeW) * 85;
+  var eyeMidY  = (le.y + re.y) / 2;
+  var chinY    = chin     ? chin.y     : 0;
+  var foreY    = forehead ? forehead.y : 0;
+  var faceH    = Math.abs(chinY - foreY) || 1e-6;
+  var pitchDeg = ((nose.y - eyeMidY) / faceH - 0.12) * 75;
   return { yawDeg: yawDeg, pitchDeg: pitchDeg };
 }
 
-// Exact copy from service: jawOpenScore
 function jawOpenScore(blendshapes) {
   if (!blendshapes || !blendshapes.length) return 0;
   var cats = blendshapes[0].categories || [];
-  for (var i = 0; i < cats.length; i++) {
-    if (cats[i].categoryName === 'jawOpen') return cats[i].score;
-  }
+  for (var i = 0; i < cats.length; i++) { if (cats[i].categoryName === 'jawOpen') return cats[i].score; }
   return 0;
 }
 
-// Exact copy from service: extractBlendshapes
 function extractBlendshapes(blendshapes) {
   var out = { eyeLookDown: 0, eyeLookUp: 0, eyeLookOut: 0, eyeLookIn: 0, eyeBlink: 0 };
   if (!blendshapes || !blendshapes.length) return out;
-  var cats   = blendshapes[0].categories || [];
-  var scores = {};
+  var cats = blendshapes[0].categories || [], scores = {};
   for (var i = 0; i < cats.length; i++) { scores[cats[i].categoryName] = cats[i].score; }
   function avg(a, b) { return ((scores[a] || 0) + (scores[b] || 0)) / 2; }
   out.eyeLookDown = avg('eyeLookDownLeft', 'eyeLookDownRight');
@@ -256,92 +213,129 @@ function extractBlendshapes(blendshapes) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// FROM gaze-detection.worker.ts — gaze classification into the same 9 states
-// Worker uses iris H/V ratios; we map yaw/pitch degrees to the same taxonomy:
-//   center_up                        ← pitch strongly up
-//   left_up   center   right_up      ← neutral vertical, lateral / center
-//   left_down  down    right_down    ← pitch down-soft, lateral / center
-//   away                             ← no face detected
+// FROM gaze-detection.worker.ts
+// Iris landmark slot indices, iris ratio computation, 3-frame median smoothing,
+// gaze classification, computeStats, computeVerdict — all copied exactly.
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Degree thresholds calibrated to mirror the worker's iris-ratio bands:
-//   worker left  < 0.42  →  yaw > +10°  (mirrored camera)
-//   worker right > 0.58  →  yaw < -10°
-//   worker up    < 0.32  →  pitch < -8°
-//   worker downSoft>0.62 →  pitch >  8°
-//   worker down  > 0.72  →  pitch > 18°  (strong down override)
-var YAW_LEFT     =  10;   // degrees: looking to person's left
-var YAW_RIGHT    = -10;   // degrees: looking to person's right
-var PITCH_UP     =  -8;   // degrees: looking upward
-var PITCH_DOWN_SOFT = 8;  // degrees: lower band (left_down / right_down / down)
-var PITCH_DOWN_HARD = 18; // degrees: strong-down override
+// Slot indices — must match worker comment:
+// leftOuter(33), leftInner(133), rightInner(362), rightOuter(263),
+// leftIris(468), rightIris(473), lUp(159), lDn(145), rUp(386), rDn(374)
+var LM_LEFT_OUTER  = 0;
+var LM_LEFT_INNER  = 1;
+var LM_RIGHT_INNER = 2;
+var LM_RIGHT_OUTER = 3;
+var LM_LEFT_IRIS   = 4;
+var LM_RIGHT_IRIS  = 5;
+var LM_L_UP        = 6;
+var LM_L_DN        = 7;
+var LM_R_UP        = 8;
+var LM_R_DN        = 9;
 
-function classifyGaze(yawDeg, pitchDeg) {
-  var isLeft     = yawDeg >  YAW_LEFT;
-  var isRight    = yawDeg <  YAW_RIGHT;
-  var isUp       = pitchDeg < PITCH_UP;
-  var isDownSoft = pitchDeg > PITCH_DOWN_SOFT;
-  var isDownHard = pitchDeg > PITCH_DOWN_HARD;
+// Pack FaceLandmarker landmarks into the Float32Array format the worker expects
+var IRIS_LM_INDICES = [33, 133, 362, 263, 468, 473, 159, 145, 386, 374];
 
-  // Strong-down override when NOT strongly lateral (same logic as worker)
-  if (isDownHard && !isLeft && !isRight) return 'down';
-
-  if (isLeft  && isUp)       return 'left_up';
-  if (isLeft  && isDownSoft) return 'left_down';
-  if (isRight && isUp)       return 'right_up';
-  if (isRight && isDownSoft) return 'right_down';
-  if (isLeft)                return 'left';
-  if (isRight)               return 'right';
-  if (isUp)                  return 'center_up';
-  if (isDownSoft)            return 'down';
-  return 'center';
+function packLandmarks(lm) {
+  var buf = new Float32Array(20);
+  for (var s = 0; s < IRIS_LM_INDICES.length; s++) {
+    var pt = lm[IRIS_LM_INDICES[s]];
+    buf[s * 2]     = pt ? pt.x : 0;
+    buf[s * 2 + 1] = pt ? pt.y : 0;
+  }
+  return buf;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// FROM gaze-detection.worker.ts — computeStats + computeVerdict (unchanged)
-// ══════════════════════════════════════════════════════════════════════════════
+function getXY(buf, slot) { var o = slot * 2; return { x: buf[o], y: buf[o + 1] }; }
 
-var CFG_CHEAT = {
-  lat: 10.0, lrc: 4.0, mld: 3.0, away: 25.0, cad: 3.5,
-  down: 18.0, dnd: 2.5, latLow: 1.5, mldLow: 2.0, latUp: 15.0,
-};
-var activeWeights = { lat: 3, lrc: 3, mld: 2, away: 2, cad: 1, down: 2, dnd: 1, latLow: 4, mldLow: 3, latUp: 1 };
-var maxScore = 22;
+function computeHRatio(buf) {
+  if (!buf || buf.length < 20) return null;
+  var lo = getXY(buf, LM_LEFT_OUTER).x,  li = getXY(buf, LM_LEFT_INNER).x;
+  var ro = getXY(buf, LM_RIGHT_INNER).x, ri = getXY(buf, LM_RIGHT_OUTER).x;
+  var lIris = getXY(buf, LM_LEFT_IRIS).x, rIris = getXY(buf, LM_RIGHT_IRIS).x;
+  var lw = li - lo, rw = ri - ro;
+  var lOk = lw >= 0.005, rOk = rw >= 0.005;
+  if (!lOk && !rOk) return null;
+  var lR = lOk ? Math.max(0, Math.min(1, (lIris - lo) / lw)) : null;
+  var rR = rOk ? Math.max(0, Math.min(1, (rIris - ro) / rw)) : null;
+  var ratio = (lR !== null && rR !== null) ? (lR + rR) / 2 : (lR !== null ? lR : rR);
+  return Math.round(ratio * 10000) / 10000;
+}
 
+function computeVRatio(buf) {
+  if (!buf || buf.length < 20) return null;
+  var lUp = getXY(buf, LM_L_UP).y, lDn = getXY(buf, LM_L_DN).y, lI = getXY(buf, LM_LEFT_IRIS).y;
+  var rUp = getXY(buf, LM_R_UP).y, rDn = getXY(buf, LM_R_DN).y, rI = getXY(buf, LM_RIGHT_IRIS).y;
+  var lH = lDn - lUp, rH = rDn - rUp;
+  var lOk = lH >= 0.003, rOk = rH >= 0.003;
+  if (!lOk && !rOk) return null;
+  var lV = lOk ? Math.max(0, Math.min(1, (lI - lUp) / lH)) : null;
+  var rV = rOk ? Math.max(0, Math.min(1, (rI - rUp) / rH)) : null;
+  var ratio = (lV !== null && rV !== null) ? (lV + rV) / 2 : (lV !== null ? lV : rV);
+  return Math.round(ratio * 10000) / 10000;
+}
+
+// 3-frame median smoothing (from worker)
+var SMOOTH_WIN = 3;
+var hBuf = [], vBuf = [];
+
+function pushSmooth(buf, val) { buf.push(val); if (buf.length > SMOOTH_WIN) buf.shift(); }
+
+function medianOf(buf) {
+  var vals = buf.filter(function(x) { return x !== null; });
+  if (!vals.length) return null;
+  var sorted = vals.slice().sort(function(a, b) { return a - b; });
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+// Global thresholds from worker (DEFAULT_GLOBAL_THRESHOLDS)
+var leftT     = 0.42;
+var rightT    = 0.58;
+var downT     = 0.72;
+var upT       = 0.32;
+var downSoftT = 0.62;
+
+// classifyGaze — exact copy from worker
+function classifyGaze(h, v) {
+  if (h === null && v === null) return 'away';
+  var isLateral = h !== null && (h < leftT || h > rightT);
+  if (v !== null && v >= downT && !isLateral) return 'down';
+  if (h === null) return 'away';
+  var lateralDir = h < leftT ? 'left' : h > rightT ? 'right' : null;
+  var vBand = v === null ? 'mid' : v < upT ? 'up' : v >= downSoftT ? 'down' : 'mid';
+  if (lateralDir === null) {
+    if (vBand === 'up')   return 'center_up';
+    if (vBand === 'down') return 'down';
+    return 'center';
+  }
+  if (vBand === 'up')   return lateralDir + '_up';
+  if (vBand === 'down') return lateralDir + '_down';
+  return lateralDir;
+}
+
+// computeStats — exact copy from worker
 var LATERAL_STATES = new Set(['left','left_up','left_down','right','right_up','right_down']);
 var CENTER_STATES  = new Set(['center','center_up']);
-
 function isLateralGaze(g) { return LATERAL_STATES.has(g); }
 function isCenterLike(g)  { return CENTER_STATES.has(g); }
 
 function computeStats(frames, duration, irisVisible) {
   var face = frames.filter(function(f) { return f.face_detected; });
-
   if (!face.length) {
-    return {
-      error: 'No face detected',
-      gaze_pct: {}, lateral_per_min: 0, look_read_per_min: 0,
-      lateral_max_dur: 0, center_avg_dur: 0, face_detection_rate: 0,
-      iris_visible_frames: 0, gaze_visible_rate: 0,
-    };
+    return { error: 'No face detected', gaze_pct: {}, lateral_per_min: 0,
+      look_read_per_min: 0, lateral_max_dur: 0, center_avg_dur: 0,
+      face_detection_rate: 0, iris_visible_frames: 0, gaze_visible_rate: 0 };
   }
+  var rawCnt = {}, tf = face.length;
+  for (var fi = 0; fi < face.length; fi++) { var fg = face[fi].gaze; rawCnt[fg] = (rawCnt[fg]||0)+1; }
 
-  var rawCnt = {};
-  for (var fi = 0; fi < face.length; fi++) {
-    var fg = face[fi].gaze;
-    rawCnt[fg] = (rawCnt[fg] || 0) + 1;
-  }
-  var tf = face.length;
-
-  var runs = [];
-  var rs = face[0].time, rg = face[0].gaze;
+  var runs = [], rs = face[0].time, rg = face[0].gaze;
   for (var i = 1; i < face.length; i++) {
     if (face[i].gaze !== rg) {
-      runs.push({ gaze: rg, start: rs, end: face[i].time, dur: +((face[i].time - rs).toFixed(2)) });
+      runs.push({ gaze: rg, start: rs, end: face[i].time, dur: +((face[i].time-rs).toFixed(2)) });
       rs = face[i].time; rg = face[i].gaze;
     }
   }
-  runs.push({ gaze: rg, start: rs, end: face[face.length-1].time, dur: +((face[face.length-1].time - rs).toFixed(2)) });
+  runs.push({ gaze: rg, start: rs, end: face[face.length-1].time, dur: +((face[face.length-1].time-rs).toFixed(2)) });
 
   var latAllT = 0;
   for (var j = 1; j < face.length; j++) {
@@ -350,243 +344,191 @@ function computeStats(frames, duration, irisVisible) {
   }
 
   var lrE = [];
-  for (var k = 0; k < runs.length - 1; k++) {
+  for (var k = 0; k < runs.length-1; k++) {
     var g0 = runs[k].gaze;
     if (!isCenterLike(runs[k+1].gaze)) continue;
     if (isLateralGaze(g0)) {
-      var kind = g0.indexOf('_down') >= 0 ? 'down_lateral' : g0.indexOf('_up') >= 0 ? 'up_lateral' : 'lateral';
+      var kind = g0.indexOf('_down')>=0 ? 'down_lateral' : g0.indexOf('_up')>=0 ? 'up_lateral' : 'lateral';
       lrE.push({ time: +(runs[k].start.toFixed(1)), dir: g0, away_dur: runs[k].dur, kind: kind });
     } else if (g0 === 'down') {
       lrE.push({ time: +(runs[k].start.toFixed(1)), dir: 'down', away_dur: runs[k].dur, kind: 'down' });
     }
   }
 
-  var cRuns    = runs.filter(function(r) { return isCenterLike(r.gaze); });
-  var dRuns    = runs.filter(function(r) { return r.gaze === 'down'; });
-  var lAllRuns = runs.filter(function(r) { return isLateralGaze(r.gaze); });
-  var lEyeRuns = runs.filter(function(r) { return r.gaze === 'left' || r.gaze === 'right'; });
-  var lUpRuns  = runs.filter(function(r) { return r.gaze === 'left_up'   || r.gaze === 'right_up'; });
-  var lDnRuns  = runs.filter(function(r) { return r.gaze === 'left_down' || r.gaze === 'right_down'; });
+  var cRuns    = runs.filter(function(r){ return isCenterLike(r.gaze); });
+  var dRuns    = runs.filter(function(r){ return r.gaze==='down'; });
+  var lEyeRuns = runs.filter(function(r){ return r.gaze==='left'||r.gaze==='right'; });
+  var lUpRuns  = runs.filter(function(r){ return r.gaze==='left_up'||r.gaze==='right_up'; });
+  var lDnRuns  = runs.filter(function(r){ return r.gaze==='left_down'||r.gaze==='right_down'; });
+  var lAllRuns = runs.filter(function(r){ return isLateralGaze(r.gaze); });
 
-  var dm = Math.max(duration / 60, 0.01);
+  var dm = Math.max(duration/60, 0.01);
+  function maxDur(arr) { if(!arr.length) return 0; var m=0; for(var x=0;x<arr.length;x++){if(arr[x].dur>m)m=arr[x].dur;} return +m.toFixed(2); }
+  function avgDur(arr) { if(!arr.length) return 0; var s=0; for(var x=0;x<arr.length;x++){s+=arr[x].dur;} return +(s/arr.length).toFixed(2); }
 
-  function maxDur(arr) {
-    if (!arr.length) return 0;
-    var m = 0;
-    for (var ii = 0; ii < arr.length; ii++) { if (arr[ii].dur > m) m = arr[ii].dur; }
-    return +m.toFixed(2);
-  }
-  function avgDur(arr) {
-    if (!arr.length) return 0;
-    var s = 0;
-    for (var ii = 0; ii < arr.length; ii++) { s += arr[ii].dur; }
-    return +(s / arr.length).toFixed(2);
-  }
-
-  var cntCenter = (rawCnt['center'] || 0) + (rawCnt['center_up'] || 0);
-  var cntLeft   = (rawCnt['left']   || 0) + (rawCnt['left_up']   || 0) + (rawCnt['left_down']  || 0);
-  var cntRight  = (rawCnt['right']  || 0) + (rawCnt['right_up']  || 0) + (rawCnt['right_down'] || 0);
-  var cntDown   = rawCnt['down'] || 0;
-  var cntAway   = rawCnt['away'] || 0;
+  var cntCenter=(rawCnt['center']||0)+(rawCnt['center_up']||0);
+  var cntLeft  =(rawCnt['left']||0)+(rawCnt['left_up']||0)+(rawCnt['left_down']||0);
+  var cntRight =(rawCnt['right']||0)+(rawCnt['right_up']||0)+(rawCnt['right_down']||0);
+  var cntDown  = rawCnt['down']||0, cntAway = rawCnt['away']||0;
 
   return {
-    total_frames:         frames.length,
-    face_detected_frames: tf,
-    face_detection_rate:  +(tf / frames.length).toFixed(3),
-    iris_visible_frames:  irisVisible,
-    gaze_visible_rate:    +(irisVisible / frames.length).toFixed(3),
+    total_frames: frames.length, face_detected_frames: tf,
+    face_detection_rate: +(tf/frames.length).toFixed(3),
+    iris_visible_frames: irisVisible,
+    gaze_visible_rate: +(irisVisible/frames.length).toFixed(3),
     gaze_pct: {
-      center:     +(cntCenter / tf * 100).toFixed(1),
-      left:       +(cntLeft   / tf * 100).toFixed(1),
-      right:      +(cntRight  / tf * 100).toFixed(1),
-      down:       +(cntDown   / tf * 100).toFixed(1),
-      away:       +(cntAway   / tf * 100).toFixed(1),
-      center_up:  +((rawCnt['center_up']  || 0) / tf * 100).toFixed(1),
-      left_up:    +((rawCnt['left_up']    || 0) / tf * 100).toFixed(1),
-      left_down:  +((rawCnt['left_down']  || 0) / tf * 100).toFixed(1),
-      right_up:   +((rawCnt['right_up']   || 0) / tf * 100).toFixed(1),
-      right_down: +((rawCnt['right_down'] || 0) / tf * 100).toFixed(1),
+      center: +(cntCenter/tf*100).toFixed(1), left: +(cntLeft/tf*100).toFixed(1),
+      right: +(cntRight/tf*100).toFixed(1),   down: +(cntDown/tf*100).toFixed(1),
+      away:  +(cntAway/tf*100).toFixed(1),
+      center_up:  +((rawCnt['center_up'] ||0)/tf*100).toFixed(1),
+      left_up:    +((rawCnt['left_up']   ||0)/tf*100).toFixed(1),
+      left_down:  +((rawCnt['left_down'] ||0)/tf*100).toFixed(1),
+      right_up:   +((rawCnt['right_up']  ||0)/tf*100).toFixed(1),
+      right_down: +((rawCnt['right_down']||0)/tf*100).toFixed(1),
     },
-    lateral_per_min:      +(latAllT        / dm).toFixed(2),
-    look_read_per_min:    +(lrE.length     / dm).toFixed(2),
-    lateral_max_dur:      maxDur(lAllRuns),
-    down_max_dur:         maxDur(dRuns),
-    lateral_avg_dur:      avgDur(lAllRuns),
-    center_avg_dur:       avgDur(cRuns),
-    lateral_transitions:  latAllT,
-    look_read_cycles:     lrE.length,
-    runs:                 runs.slice(0, 500),
-    lrEvents:             lrE.slice(0, 100),
+    lateral_per_min:      +(latAllT/dm).toFixed(2),
+    look_read_per_min:    +(lrE.length/dm).toFixed(2),
+    lateral_max_dur:      maxDur(lAllRuns), down_max_dur: maxDur(dRuns),
+    lateral_avg_dur:      avgDur(lAllRuns), center_avg_dur: avgDur(cRuns),
+    lateral_transitions:  latAllT, look_read_cycles: lrE.length,
+    runs: runs.slice(0,500), lrEvents: lrE.slice(0,100),
     lateral_pct: {
-      eye_level: +(((rawCnt['left']      || 0) + (rawCnt['right']      || 0)) / tf * 100).toFixed(1),
-      upper:     +(((rawCnt['left_up']   || 0) + (rawCnt['right_up']   || 0)) / tf * 100).toFixed(1),
-      lower:     +(((rawCnt['left_down'] || 0) + (rawCnt['right_down'] || 0)) / tf * 100).toFixed(1),
+      eye_level: +(((rawCnt['left']||0)+(rawCnt['right']||0))/tf*100).toFixed(1),
+      upper:     +(((rawCnt['left_up']||0)+(rawCnt['right_up']||0))/tf*100).toFixed(1),
+      lower:     +(((rawCnt['left_down']||0)+(rawCnt['right_down']||0))/tf*100).toFixed(1),
     },
-    lateral_eye_per_min:  +(lEyeRuns.length / dm).toFixed(2),
-    lateral_up_per_min:   +(lUpRuns.length  / dm).toFixed(2),
-    lateral_down_per_min: +(lDnRuns.length  / dm).toFixed(2),
+    lateral_eye_per_min:  +(lEyeRuns.length/dm).toFixed(2),
+    lateral_up_per_min:   +(lUpRuns.length/dm).toFixed(2),
+    lateral_down_per_min: +(lDnRuns.length/dm).toFixed(2),
     lateral_eye_max_dur:  maxDur(lEyeRuns),
     lateral_up_max_dur:   maxDur(lUpRuns),
     lateral_down_max_dur: maxDur(lDnRuns),
-    look_read_down_per_min: +(lrE.filter(function(e){ return e.kind==='down'||e.kind==='down_lateral'; }).length / dm).toFixed(2),
-    look_read_up_per_min:   +(lrE.filter(function(e){ return e.kind==='up_lateral'; }).length / dm).toFixed(2),
+    look_read_down_per_min: +(lrE.filter(function(e){return e.kind==='down'||e.kind==='down_lateral';}).length/dm).toFixed(2),
+    look_read_up_per_min:   +(lrE.filter(function(e){return e.kind==='up_lateral';}).length/dm).toFixed(2),
   };
 }
+
+// computeVerdict — exact copy from worker
+var CFG_CHEAT = { lat:10.0,lrc:4.0,mld:3.0,away:25.0,cad:3.5,down:18.0,dnd:2.5,latLow:1.5,mldLow:2.0,latUp:15.0 };
+var activeWeights = { lat:3,lrc:3,mld:2,away:2,cad:1,down:2,dnd:1,latLow:4,mldLow:3,latUp:1 };
+var maxScore = 22;
 
 function computeVerdict(stats) {
-  if (stats.error) {
-    return { label: 'UNKNOWN', confidence: 0, color: 'unknown', reason: stats.error, factors: [] };
+  if (stats.error) return { label:'UNKNOWN',confidence:0,color:'unknown',reason:stats.error,factors:[] };
+  var tLat=CFG_CHEAT.lat,tLrc=CFG_CHEAT.lrc,tMld=CFG_CHEAT.mld,tAway=CFG_CHEAT.away,
+      tCad=CFG_CHEAT.cad,tDown=CFG_CHEAT.down,tDnd=CFG_CHEAT.dnd,
+      tLatLow=CFG_CHEAT.latLow,tMldLow=CFG_CHEAT.mldLow,tLatUp=CFG_CHEAT.latUp;
+  var score=0, factors=[];
+  function addF(name,val,thresh,trig,w,sev) {
+    if(trig) score+=w;
+    factors.push({name:name,value:val,threshold:thresh+' (global)',triggered:trig,severity:trig?sev:'none'});
   }
+  var aw=stats.gaze_pct.away||0, fdr=stats.face_detection_rate||0;
+  var usablePct=Math.max(0,100-aw), qualityOK=fdr>=0.75&&aw<=55;
+  var lat   =stats.lateral_eye_per_min !=null?stats.lateral_eye_per_min :(stats.lateral_per_min||0);
+  var mld   =stats.lateral_eye_max_dur !=null?stats.lateral_eye_max_dur :(stats.lateral_max_dur||0);
+  var latLow=stats.lateral_down_per_min!=null?stats.lateral_down_per_min:0;
+  var mldLow=stats.lateral_down_max_dur!=null?stats.lateral_down_max_dur:0;
+  var latUp =stats.lateral_up_per_min  !=null?stats.lateral_up_per_min  :0;
+  var lrc=stats.look_read_per_min||0, cad=stats.center_avg_dur||0;
+  var dn=stats.gaze_pct.down||0, dnd=stats.down_max_dur||0;
 
-  var tLat=CFG_CHEAT.lat, tLrc=CFG_CHEAT.lrc, tMld=CFG_CHEAT.mld, tAway=CFG_CHEAT.away,
-      tCad=CFG_CHEAT.cad, tDown=CFG_CHEAT.down, tDnd=CFG_CHEAT.dnd,
-      tLatLow=CFG_CHEAT.latLow, tMldLow=CFG_CHEAT.mldLow, tLatUp=CFG_CHEAT.latUp;
+  var trigLat   =qualityOK&&lat>=tLat,    trigLrc=lrc>=tLrc;
+  var trigMld   =qualityOK&&mld>=tMld,    trigLatLow=qualityOK&&latLow>=tLatLow;
+  var trigMldLow=qualityOK&&mldLow>=tMldLow, trigLatUp=qualityOK&&latUp>=tLatUp;
+  var hasReadingEvidence=trigLrc||(qualityOK&&dn>=tDown)||trigLatLow||trigMldLow||(qualityOK&&mld>=Math.max(tMld,6)&&lat>=tLat*1.1);
+  var trigAway=aw>=tAway&&hasReadingEvidence&&aw<=85;
+  var trigCad=qualityOK&&cad>0&&cad<tCad, trigDown=qualityOK&&dn>=tDown, trigDnd=qualityOK&&dnd>=tDnd;
 
-  var score = 0, factors = [];
+  addF('Lateral Gaze Frequency',          lat   +'/min', '>'+tLat   +'/min', trigLat,   activeWeights.lat,   lat   >=tLat*1.4  ?'high':'medium');
+  addF('Look-Read Cycles',                lrc   +'/min', '>'+tLrc   +'/min', trigLrc,   activeWeights.lrc,   lrc   >=tLrc*1.4  ?'high':'medium');
+  addF('Sustained Lateral Gaze',          mld   +'s',    '>'+tMld   +'s',    trigMld,   activeWeights.mld,   mld   >=8         ?'high':'medium');
+  addF('Away Gaze / Head Turning',        aw    +'%',    '>'+tAway  +'%',    trigAway,  activeWeights.away,  aw    >=tAway*1.3 ?'high':'medium');
+  addF('Short Attention Span',            cad   +'s avg','<'+tCad   +'s avg',trigCad,   activeWeights.cad,   'medium');
+  addF('Down Gaze (Reading Below)',       dn    +'%',    '>'+tDown  +'%',    trigDown,  activeWeights.down,  dn    >=tDown*1.3 ?'high':'medium');
+  addF('Sustained Down Gaze',             dnd   +'s',    '>'+tDnd   +'s',    trigDnd,   activeWeights.dnd,   dnd   >=6         ?'high':'medium');
+  addF('Lower Lateral Gaze (Phone/Notes)',latLow+'/min', '>'+tLatLow+'/min', trigLatLow,activeWeights.latLow,latLow>=tLatLow*2 ?'high':'medium');
+  addF('Sustained Lower Lateral Gaze',   mldLow+'s',    '>'+tMldLow+'s',    trigMldLow,activeWeights.mldLow,mldLow>=4         ?'high':'medium');
+  addF('Upper Lateral Gaze (Thinking)',   latUp +'/min', '>'+tLatUp +'/min', trigLatUp, activeWeights.latUp, 'low');
 
-  function addF(name, val, thresh, trig, w, sev) {
-    if (trig) score += w;
-    factors.push({ name: name, value: val, threshold: thresh, triggered: trig, severity: trig ? sev : 'none' });
-  }
+  var qualityPenalty=qualityOK?0:Math.min(22,Math.round(Math.max(0,aw-55)*0.25+(0.75-Math.min(0.75,fdr))*30));
+  var cRaw=maxScore>0?(score/maxScore)*100:0;
+  var nTrig=factors.filter(function(f){return f.triggered;}).length;
+  var primaryEvidence=trigLrc||trigDown||trigDnd||trigLatLow||trigMldLow||(qualityOK&&mld>=Math.max(tMld,6)&&lat>=tLat*1.2);
 
-  var aw  = stats.gaze_pct.away || 0;
-  var fdr = stats.face_detection_rate || 0;
-  var usablePct = Math.max(0, 100 - aw);
-  var qualityOK = fdr >= 0.75 && aw <= 55;
+  var label,color,confidence;
+  if(!qualityOK&&!primaryEvidence)         { label='CAN NOT EVALUATE'; color='unknown'; confidence=0; }
+  else if(score>=7&&primaryEvidence)        { label='CHEATING DETECTED'; color='cheat';
+    confidence=Math.min(98,Math.max(55,Math.round(60+cRaw*0.4-qualityPenalty))); }
+  else if(score>=4||(score>=7&&!primaryEvidence)){ label='SUSPICIOUS BEHAVIOR'; color='suspect';
+    confidence=Math.max(30,Math.round(40+cRaw*0.35-qualityPenalty)); }
+  else { label='NO CHEATING DETECTED'; color='ok';
+    confidence=Math.min(97,Math.max(55,Math.round(68+(1-cRaw/100)*29-qualityPenalty))); }
 
-  var lat    = stats.lateral_eye_per_min  != null ? stats.lateral_eye_per_min  : (stats.lateral_per_min || 0);
-  var mld    = stats.lateral_eye_max_dur  != null ? stats.lateral_eye_max_dur  : (stats.lateral_max_dur || 0);
-  var latLow = stats.lateral_down_per_min != null ? stats.lateral_down_per_min : 0;
-  var mldLow = stats.lateral_down_max_dur != null ? stats.lateral_down_max_dur : 0;
-  var latUp  = stats.lateral_up_per_min   != null ? stats.lateral_up_per_min   : 0;
-  var lrc    = stats.look_read_per_min || 0;
-  var cad    = stats.center_avg_dur    || 0;
-  var dn     = stats.gaze_pct.down     || 0;
-  var dnd    = stats.down_max_dur      || 0;
+  var nonCheatConf=confidence;
+  var cheatConf=(label==='NO CHEATING DETECTED'||label==='CAN NOT EVALUATE')
+    ?Math.max(0,Math.min(100,100-nonCheatConf)):nonCheatConf;
+  confidence=cheatConf;
 
-  var trigLat    = qualityOK && lat    >= tLat;
-  var trigLrc    = lrc >= tLrc;
-  var trigMld    = qualityOK && mld    >= tMld;
-  var trigLatLow = qualityOK && latLow >= tLatLow;
-  var trigMldLow = qualityOK && mldLow >= tMldLow;
-  var trigLatUp  = qualityOK && latUp  >= tLatUp;
-  var hasReadingEvidence =
-    trigLrc || (qualityOK && dn >= tDown) || trigLatLow || trigMldLow ||
-    (qualityOK && mld >= Math.max(tMld, 6) && lat >= tLat * 1.1);
-  var trigAway = aw >= tAway && hasReadingEvidence && aw <= 85;
-  var trigCad  = qualityOK && cad > 0 && cad < tCad;
-  var trigDown = qualityOK && dn  >= tDown;
-  var trigDnd  = qualityOK && dnd >= tDnd;
-
-  addF('Lateral Gaze Frequency',           lat    + '/min', '>' + tLat    + '/min', trigLat,    activeWeights.lat,    lat    >= tLat*1.4  ? 'high':'medium');
-  addF('Look-Read Cycles',                 lrc    + '/min', '>' + tLrc    + '/min', trigLrc,    activeWeights.lrc,    lrc    >= tLrc*1.4  ? 'high':'medium');
-  addF('Sustained Lateral Gaze',           mld    + 's',    '>' + tMld    + 's',    trigMld,    activeWeights.mld,    mld    >= 8         ? 'high':'medium');
-  addF('Away Gaze / Head Turning',         aw     + '%',    '>' + tAway   + '%',    trigAway,   activeWeights.away,   aw     >= tAway*1.3 ? 'high':'medium');
-  addF('Short Attention Span',             cad    + 's avg','<' + tCad    + 's avg',trigCad,    activeWeights.cad,    'medium');
-  addF('Down Gaze (Reading Below)',        dn     + '%',    '>' + tDown   + '%',    trigDown,   activeWeights.down,   dn     >= tDown*1.3 ? 'high':'medium');
-  addF('Sustained Down Gaze',              dnd    + 's',    '>' + tDnd    + 's',    trigDnd,    activeWeights.dnd,    dnd    >= 6         ? 'high':'medium');
-  addF('Lower Lateral Gaze (Phone/Notes)', latLow + '/min', '>' + tLatLow + '/min', trigLatLow, activeWeights.latLow, latLow >= tLatLow*2 ? 'high':'medium');
-  addF('Sustained Lower Lateral Gaze',     mldLow + 's',    '>' + tMldLow + 's',    trigMldLow, activeWeights.mldLow, mldLow >= 4         ? 'high':'medium');
-  addF('Upper Lateral Gaze (Thinking)',    latUp  + '/min', '>' + tLatUp  + '/min', trigLatUp,  activeWeights.latUp,  'low');
-
-  var qualityPenalty = qualityOK ? 0 : Math.min(22, Math.round(Math.max(0, aw-55)*0.25 + (0.75-Math.min(0.75,fdr))*30));
-  var cRaw  = maxScore > 0 ? (score / maxScore) * 100 : 0;
-  var nTrig = factors.filter(function(f){ return f.triggered; }).length;
-
-  var primaryEvidence =
-    trigLrc || trigDown || trigDnd || trigLatLow || trigMldLow ||
-    (qualityOK && mld >= Math.max(tMld, 6) && lat >= tLat * 1.2);
-
-  var label, color, confidence;
-  if (!qualityOK && !primaryEvidence) {
-    label = 'CAN NOT EVALUATE'; color = 'unknown'; confidence = 0;
-  } else if (score >= 7 && primaryEvidence) {
-    label = 'CHEATING DETECTED'; color = 'cheat';
-    confidence = Math.min(98, Math.max(55, Math.round(60 + cRaw*0.4 - qualityPenalty)));
-  } else if (score >= 4 || (score >= 7 && !primaryEvidence)) {
-    label = 'SUSPICIOUS BEHAVIOR'; color = 'suspect';
-    confidence = Math.max(30, Math.round(40 + cRaw*0.35 - qualityPenalty));
-  } else {
-    label = 'NO CHEATING DETECTED'; color = 'ok';
-    confidence = Math.min(97, Math.max(55, Math.round(68 + (1-cRaw/100)*29 - qualityPenalty)));
-  }
-
-  var nonCheatConf = confidence;
-  if (color === 'ok' || color === 'unknown') {
-    confidence = Math.max(0, Math.min(100, 100 - nonCheatConf));
-  }
-
-  var tNames = factors.filter(function(f){ return f.triggered; }).map(function(f){ return f.name; });
-
+  var tNames=factors.filter(function(f){return f.triggered;}).map(function(f){return f.name;});
   return {
-    label: label, color: color, confidence: confidence,
-    score: score, max_score: maxScore, triggered_count: nTrig,
-    reason: nTrig + '/' + factors.length + ' indicators triggered' +
-      (tNames.length ? ': ' + tNames.join(', ') : ' — none') +
-      (qualityOK ? '' : ' · Low quality (face ' + Math.round(fdr*100) + '%, away ' + aw + '%, usable ' + usablePct + '%)'),
-    factors: factors,
+    label:label, color:color, confidence:confidence,
+    score:score, max_score:maxScore, triggered_count:nTrig,
+    reason: nTrig+'/'+factors.length+' indicators triggered'+
+      (tNames.length?': '+tNames.join(', '):'  — none')+
+      (qualityOK?'':' · Tracking quality low (face '+Math.round(fdr*100)+'%, away '+aw+'%, usable '+usablePct+'%)'),
+    factors:factors,
   };
 }
 
-// ── Show analysis result ──────────────────────────────────────────────────────
-function showResult(recordedFrames, durationSec) {
-  var faceFrames = recordedFrames.filter(function(f){ return f.face_detected; });
-  var stats   = computeStats(recordedFrames, durationSec, faceFrames.length);
+// ══════════════════════════════════════════════════════════════════════════════
+// Show result after Stop
+// ══════════════════════════════════════════════════════════════════════════════
+
+function showResult(recordedFrames, durationSec, irisVisible) {
+  var stats   = computeStats(recordedFrames, durationSec, irisVisible);
   var verdict = computeVerdict(stats);
 
-  var verdictBox = document.getElementById('verdictBox');
-  verdictBox.textContent = verdict.label + '  (' + verdict.confidence + '% confidence)';
-  verdictBox.className   = 'verdict-' + verdict.color;
+  var vbox = document.getElementById('verdictBox');
+  vbox.textContent = verdict.label + '  (' + verdict.confidence + '% confidence)';
+  vbox.className   = 'verdict-' + verdict.color;
 
-  function row(label, val) {
-    return '<div class="stat-row"><span class="stat-label">' + label + '</span><span class="stat-val">' + val + '</span></div>';
-  }
+  function row(lbl,val){return '<div class="stat-row"><span class="stat-label">'+lbl+'</span><span class="stat-val">'+val+'</span></div>';}
+  var sh='';
+  sh+=row('Duration',            durationSec.toFixed(1)+'s');
+  sh+=row('Total frames',        stats.total_frames);
+  sh+=row('Face detected',       stats.face_detected_frames+' ('+Math.round(stats.face_detection_rate*100)+'%)');
+  sh+=row('Iris visible frames', stats.iris_visible_frames);
+  sh+=row('Lateral gaze /min',   stats.lateral_eye_per_min!=null?stats.lateral_eye_per_min:stats.lateral_per_min);
+  sh+=row('Look-read cycles/min',stats.look_read_per_min);
+  sh+=row('Max lateral run',     (stats.lateral_eye_max_dur!=null?stats.lateral_eye_max_dur:stats.lateral_max_dur)+'s');
+  sh+=row('Max down run',        stats.down_max_dur+'s');
+  sh+=row('Center avg dur',      stats.center_avg_dur+'s');
+  sh+=row('Score',               verdict.score+' / '+verdict.max_score);
+  document.getElementById('statsTable').innerHTML=sh;
 
-  var statsHtml = '';
-  statsHtml += row('Duration',              durationSec.toFixed(1) + 's');
-  statsHtml += row('Total frames',          stats.total_frames);
-  statsHtml += row('Face detected',         stats.face_detected_frames + ' (' + (stats.face_detection_rate*100).toFixed(0) + '%)');
-  statsHtml += row('Lateral gaze /min',     stats.lateral_eye_per_min != null ? stats.lateral_eye_per_min : stats.lateral_per_min);
-  statsHtml += row('Look-read cycles /min', stats.look_read_per_min);
-  statsHtml += row('Max lateral run',       (stats.lateral_eye_max_dur != null ? stats.lateral_eye_max_dur : stats.lateral_max_dur) + 's');
-  statsHtml += row('Max down run',          stats.down_max_dur + 's');
-  statsHtml += row('Center avg dur',        stats.center_avg_dur + 's');
-  statsHtml += row('Score',                 verdict.score + ' / ' + verdict.max_score);
-  document.getElementById('statsTable').innerHTML = statsHtml;
-
-  var gp = stats.gaze_pct || {};
-  var distHtml = '';
-  var pairs = [
-    ['Center',       (+(gp.center||0) + +(gp.center_up||0)).toFixed(1)],
-    ['↑ Center Up',  gp.center_up   || 0],
-    ['← Left',       gp.left        || 0],
-    ['↖ Left Up',    gp.left_up     || 0],
-    ['↙ Left Down',  gp.left_down   || 0],
-    ['→ Right',      gp.right       || 0],
-    ['↗ Right Up',   gp.right_up    || 0],
-    ['↘ Right Down', gp.right_down  || 0],
-    ['↓ Down',       gp.down        || 0],
-    ['✕ Away',       gp.away        || 0],
+  var gp=stats.gaze_pct||{}, dh='';
+  var pairs=[
+    ['Center',       (+(gp.center||0)+ +(gp.center_up||0)).toFixed(1)],
+    ['↑ Center Up',  gp.center_up  ||0], ['← Left',       gp.left       ||0],
+    ['↖ Left Up',    gp.left_up    ||0], ['↙ Left Down',  gp.left_down  ||0],
+    ['→ Right',      gp.right      ||0], ['↗ Right Up',   gp.right_up   ||0],
+    ['↘ Right Down', gp.right_down ||0], ['↓ Down',       gp.down       ||0],
+    ['✕ Away',       gp.away       ||0],
   ];
-  for (var gi = 0; gi < pairs.length; gi++) {
-    distHtml += row(pairs[gi][0], pairs[gi][1] + '%');
-  }
-  document.getElementById('gazeDistTable').innerHTML = distHtml;
+  for(var gi=0;gi<pairs.length;gi++) dh+=row(pairs[gi][0],pairs[gi][1]+'%');
+  document.getElementById('gazeDistTable').innerHTML=dh;
 
-  var fList = document.getElementById('factorsList');
-  fList.innerHTML = '';
-  for (var fi = 0; fi < verdict.factors.length; fi++) {
-    var f = verdict.factors[fi];
-    var li = document.createElement('li');
-    li.innerHTML =
-      '<span class="factor-name">' + f.name + '</span>' +
-      '<span class="factor-val">' + f.value + ' (thresh ' + f.threshold + ')</span>' +
-      (f.triggered ? '<span class="factor-trig">▲ TRIGGERED</span>' : '<span class="factor-ok">✓ ok</span>');
+  var fList=document.getElementById('factorsList'); fList.innerHTML='';
+  for(var fi=0;fi<verdict.factors.length;fi++){
+    var f=verdict.factors[fi], li=document.createElement('li');
+    li.innerHTML='<span class="factor-name">'+f.name+'</span>'+
+      '<span class="factor-val">'+f.value+' (thresh '+f.threshold+')</span>'+
+      (f.triggered?'<span class="factor-trig">▲ TRIGGERED</span>':'<span class="factor-ok">✓ ok</span>');
     fList.appendChild(li);
   }
-
-  document.getElementById('reasonText').textContent = verdict.reason;
-  document.getElementById('result').style.display = 'block';
+  document.getElementById('reasonText').textContent=verdict.reason;
+  document.getElementById('result').style.display='block';
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -604,54 +546,53 @@ var landmarker     = null;
 var stream         = null;
 var intervalId     = null;
 var frameCount     = 0;
+var irisVisible    = 0;
 var capCanvas      = document.createElement('canvas');
 var capCtx         = capCanvas.getContext('2d');
 var prevGaze       = null;
 var recordedFrames = [];
 var sessionStartMs = 0;
 
+// sessionStorage checkpoint — same key and structure as service
+var CHECKPOINT_KEY     = 'rdga_checkpoint';
+var checkpointInterval = null;
+
+function writeCheckpoint() {
+  if (!recordedFrames.length) return;
+  try {
+    sessionStorage.setItem(CHECKPOINT_KEY, JSON.stringify({
+      sessionStartTime:   sessionStartMs,
+      cumulativeActiveMs: Date.now() - sessionStartMs,
+      samples:            recordedFrames,
+    }));
+  } catch(e) { console.warn('checkpoint write failed', e); }
+}
+
+function clearCheckpoint() {
+  try { sessionStorage.removeItem(CHECKPOINT_KEY); } catch(e) {}
+}
+
 function highlightGaze(gaze) {
   if (gaze === prevGaze) return;
   prevGaze = gaze;
   var cells = document.querySelectorAll('.gcell');
   for (var i = 0; i < cells.length; i++) { cells[i].classList.remove('active'); }
-
-  // 'away' has no grid cell — show the away indicator text instead
-  var awayEl = document.getElementById('awayIndicator');
-  if (gaze === 'away') {
-    awayEl.textContent = 'NO FACE';
-    awayEl.style.color = '#c00';
-    return;
+  var awayEl = document.getElementById('awayLabel');
+  if (gaze === 'away' || gaze === 'no_face') {
+    awayEl.textContent = 'NO FACE'; awayEl.style.color = '#c00'; return;
   }
-  awayEl.textContent = '—';
-  awayEl.style.color = '#888';
-
+  awayEl.textContent = '—'; awayEl.style.color = '#888';
   var el = document.getElementById('cell-' + gaze);
   if (el) el.classList.add('active');
 }
 
-function updateRaw(gaze, yaw, pitch, jaw, blends) {
-  document.getElementById('rv-gaze').textContent     = gaze.toUpperCase().replace(/_/g, ' ');
-  document.getElementById('rv-yaw').textContent      = yaw.toFixed(2) + '°';
-  document.getElementById('rv-pitch').textContent    = pitch.toFixed(2) + '°';
-  document.getElementById('rv-jaw').textContent      = jaw.toFixed(3);
-  document.getElementById('rv-lookDown').textContent = blends.eyeLookDown.toFixed(3);
-  document.getElementById('rv-lookUp').textContent   = blends.eyeLookUp.toFixed(3);
-  document.getElementById('rv-lookOut').textContent  = blends.eyeLookOut.toFixed(3);
-  document.getElementById('rv-lookIn').textContent   = blends.eyeLookIn.toFixed(3);
-  document.getElementById('rv-blink').textContent    = blends.eyeBlink.toFixed(3);
-  document.getElementById('rv-frames').textContent   = frameCount;
-}
-
-// captureAndProcess runs at 3 FPS — same rate as service (targetFPS: 3)
 function captureAndProcess() {
   if (!vid || vid.readyState < 2) return;
   var vw = vid.videoWidth, vh = vid.videoHeight;
   if (!vw || !vh) return;
 
-  // Capture at 320px wide — same as service
-  var scale = 320 / vw;
-  var dw = 320, dh = Math.round(vh * scale);
+  // 320px capture — same as service
+  var scale = 320 / vw, dw = 320, dh = Math.round(vh * scale);
   if (capCanvas.width !== dw)  capCanvas.width  = dw;
   if (capCanvas.height !== dh) capCanvas.height = dh;
   capCtx.drawImage(vid, 0, 0, dw, dh);
@@ -667,41 +608,67 @@ function captureAndProcess() {
     frameCount++;
 
     if (!result.faceLandmarks || !result.faceLandmarks.length) {
-      // No face — record as 'away' (same as worker: face_detected=false, gaze='no_face')
+      // No face — worker stores face_detected:false, gaze:'no_face'
       recordedFrames.push({ time: +tSec.toFixed(2), face_detected: false, gaze: 'no_face' });
-      highlightGaze('away');
       console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: false, gaze: 'away' });
+      highlightGaze('no_face');
       return;
     }
 
-    var lm     = result.faceLandmarks[0];
-    var pose   = estimateYawPitchNose(lm);   // from service
-    var jaw    = jawOpenScore(result.faceBlendshapes);       // from service
-    var blends = extractBlendshapes(result.faceBlendshapes); // from service
-    var gaze   = classifyGaze(pose.yawDeg, pose.pitchDeg);   // → same 9 states as worker
+    var lm = result.faceLandmarks[0];
 
-    // Record frame in the shape computeStats expects
-    recordedFrames.push({ time: +tSec.toFixed(2), face_detected: true, gaze: gaze });
+    // ── Worker path: pack iris landmarks → compute H/V ratios → 3-frame smooth → classify ──
+    var buf   = packLandmarks(lm);
+    var rawH  = computeHRatio(buf);
+    var rawV  = computeVRatio(buf);
+    pushSmooth(hBuf, rawH);
+    pushSmooth(vBuf, rawV);
+    var hRatio = medianOf(hBuf);
+    var vRatio = medianOf(vBuf);
+    var gaze   = classifyGaze(hRatio, vRatio);
 
-    console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: true, gaze: gaze });
+    // irisQuality: worker defaults to 1 when not provided; we track visible frames
+    // when hRatio/vRatio are not null (iris geometry is valid)
+    if (hRatio !== null || vRatio !== null) irisVisible++;
+
+    // Record frame — exact shape worker's frames array uses
+    recordedFrames.push({ time: +tSec.toFixed(2), face_detected: true, gaze: gaze, h_ratio: hRatio, v_ratio: vRatio });
+
+    console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: true, gaze: gaze, h_ratio: hRatio, v_ratio: vRatio });
+
+    // ── Service path: extract yaw/pitch/blendshapes for raw display ──
+    var pose   = estimateYawPitchNose(lm);
+    var jaw    = jawOpenScore(result.faceBlendshapes);
+    var blends = extractBlendshapes(result.faceBlendshapes);
 
     highlightGaze(gaze);
-    updateRaw(gaze, pose.yawDeg, pose.pitchDeg, jaw, blends);
 
-    // Draw key landmark dots on video overlay
+    // Update raw values panel
+    document.getElementById('rv-gaze').textContent     = gaze.toUpperCase().replace(/_/g,' ');
+    document.getElementById('rv-h').textContent        = hRatio !== null ? hRatio.toFixed(4) : '—';
+    document.getElementById('rv-v').textContent        = vRatio !== null ? vRatio.toFixed(4) : '—';
+    document.getElementById('rv-yaw').textContent      = pose.yawDeg.toFixed(2)+'°';
+    document.getElementById('rv-pitch').textContent    = pose.pitchDeg.toFixed(2)+'°';
+    document.getElementById('rv-jaw').textContent      = jaw.toFixed(3);
+    document.getElementById('rv-lookDown').textContent = blends.eyeLookDown.toFixed(3);
+    document.getElementById('rv-lookUp').textContent   = blends.eyeLookUp.toFixed(3);
+    document.getElementById('rv-lookOut').textContent  = blends.eyeLookOut.toFixed(3);
+    document.getElementById('rv-lookIn').textContent   = blends.eyeLookIn.toFixed(3);
+    document.getElementById('rv-blink').textContent    = blends.eyeBlink.toFixed(3);
+    document.getElementById('rv-frames').textContent   = frameCount;
+
+    // Landmark dots on overlay
     overlay.width  = vid.offsetWidth  || 480;
     overlay.height = vid.offsetHeight || 360;
     ctx.clearRect(0, 0, overlay.width, overlay.height);
     var scaleX = overlay.width / vw, scaleY = overlay.height / vh;
     ctx.fillStyle = '#00ff88';
-    var keys = [1, 33, 263, 152, 10, 61, 291, 4, 468, 473];
+    var keys = [1, 33, 263, 152, 10, 468, 473, 159, 145, 386, 374];
     for (var i = 0; i < keys.length; i++) {
       var pt = lm[keys[i]];
       if (!pt) continue;
-      var px = (1 - pt.x) * vw * scaleX;  // mirror
-      var py = pt.y * vh * scaleY;
       ctx.beginPath();
-      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.arc((1-pt.x)*vw*scaleX, pt.y*vh*scaleY, 3, 0, Math.PI*2);
       ctx.fill();
     }
 
@@ -716,8 +683,7 @@ btnStart.addEventListener('click', async function() {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
   } catch(e) {
     statusLine.textContent = 'Camera error: ' + e.message;
-    btnStart.disabled = false;
-    return;
+    btnStart.disabled = false; return;
   }
 
   vid.srcObject = stream;
@@ -734,34 +700,31 @@ btnStart.addEventListener('click', async function() {
           modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
           delegate: 'CPU'
         },
-        runningMode:                'IMAGE',
-        numFaces:                   1,
-        outputFaceBlendshapes:      true,
-        minFaceDetectionConfidence: 0.4,   // same as service
-        minFacePresenceConfidence:  0.4,   // same as service
+        runningMode: 'IMAGE', numFaces: 1, outputFaceBlendshapes: true,
+        minFaceDetectionConfidence: 0.4,  // same as service
+        minFacePresenceConfidence:  0.4,  // same as service
       });
     } catch(e) {
       statusLine.textContent = 'Model load failed: ' + e.message;
-      btnStart.disabled = false;
-      return;
+      btnStart.disabled = false; return;
     }
   }
 
-  frameCount     = 0;
-  prevGaze       = null;
-  recordedFrames = [];
-  sessionStartMs = Date.now();
+  frameCount = 0; irisVisible = 0; prevGaze = null;
+  recordedFrames = []; sessionStartMs = Date.now();
+  hBuf = []; vBuf = [];  // reset smoothing buffers
   document.getElementById('result').style.display = 'none';
   statusLine.textContent = 'Running at 3 FPS…';
   btnStop.disabled = false;
 
-  // 3 FPS = 333ms — same as service targetFPS: 3
-  intervalId = setInterval(captureAndProcess, 333);
+  intervalId = setInterval(captureAndProcess, 333);  // 3 FPS — same as service
+  checkpointInterval = setInterval(writeCheckpoint, 5000);  // 5s checkpoint — same as service
 });
 
 btnStop.addEventListener('click', function() {
   clearInterval(intervalId);
-  intervalId = null;
+  clearInterval(checkpointInterval);
+  intervalId = null; checkpointInterval = null;
 
   var durationSec = (Date.now() - sessionStartMs) / 1000;
 
@@ -772,10 +735,10 @@ btnStop.addEventListener('click', function() {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 
   statusLine.textContent = 'Stopped. Analyzing ' + recordedFrames.length + ' frames…';
-  btnStop.disabled  = true;
-  btnStart.disabled = false;
+  btnStop.disabled = true; btnStart.disabled = false;
 
-  showResult(recordedFrames, durationSec);
+  clearCheckpoint();
+  showResult(recordedFrames, durationSec, irisVisible);
   statusLine.textContent = 'Done. See analysis below.';
 });
 </script>
