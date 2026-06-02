@@ -28,7 +28,7 @@
     #gazeGrid {
       display: grid;
       grid-template-columns: repeat(3, 90px);
-      grid-template-rows:    repeat(3, 70px);
+      grid-template-rows:    70px 70px;
       gap: 4px;
     }
     .gcell {
@@ -43,6 +43,8 @@
     }
     /* special colour for center = good */
     .gcell.active.center-cell { background: #22aa44; border-color: #006622; }
+    /* up spans full width */
+    #cell-up { grid-column: 1 / -1; }
 
     /* raw numbers */
     #rawBox {
@@ -117,25 +119,13 @@
 
   <div id="rightPanel">
 
-    <!-- 3x3 Gaze Direction Grid -->
-    <!--
-      Layout:
-        left_up    | center_up  | right_up
-        left       | center     | right
-        left_down  | down       | right_down
-    -->
+    <!-- Simplified Gaze Grid: UP (full width) + LEFT / CENTER / RIGHT -->
     <div id="gazeGrid">
-      <div class="gcell" id="cell-left_up">LEFT<br>UP</div>
-      <div class="gcell center-cell" id="cell-center_up">CENTER<br>UP</div>
-      <div class="gcell" id="cell-right_up">RIGHT<br>UP</div>
+      <div class="gcell" id="cell-up">UP</div>
 
       <div class="gcell" id="cell-left">LEFT</div>
       <div class="gcell center-cell" id="cell-center">CENTER</div>
       <div class="gcell" id="cell-right">RIGHT</div>
-
-      <div class="gcell" id="cell-left_down">LEFT<br>DOWN</div>
-      <div class="gcell" id="cell-down">DOWN</div>
-      <div class="gcell" id="cell-right_down">RIGHT<br>DOWN</div>
     </div>
 
     <!-- Raw tracked values -->
@@ -247,23 +237,20 @@ function extractBlendshapes(blendshapes) {
   return out;
 }
 
-// ── Gaze state classification (from worker gaze thresholds) ──────────────────
-// Using the nose-based yaw/pitch angles (degrees)
+// ── Gaze state classification ─────────────────────────────────────────────────
+// Up variants (left_up, center_up, right_up) all collapse to 'up'.
+// Down variants collapse to their lateral/center equivalent (no down tracking).
 function classifyGazeFromPose(yawDeg, pitchDeg) {
-  // mirror: positive yaw = looking right in camera space
-  var isLeft  = yawDeg >  10;   // mirrored video
+  var isLeft  = yawDeg >  10;   // mirrored video: positive yaw = person's left
   var isRight = yawDeg < -10;
   var isUp    = pitchDeg < -5;
-  var isDown  = pitchDeg >  10;
 
-  if (isLeft  && isUp)   return 'left_up';
-  if (isLeft  && isDown) return 'left_down';
-  if (isRight && isUp)   return 'right_up';
-  if (isRight && isDown) return 'right_down';
-  if (isLeft)            return 'left';
-  if (isRight)           return 'right';
-  if (isUp)              return 'center_up';
-  if (isDown)            return 'down';
+  // Any upward gaze → UP regardless of lateral position
+  if (isUp) return 'up';
+
+  // Lateral only (ignore downward pitch — treat as same lateral/center level)
+  if (isLeft)  return 'left';
+  if (isRight) return 'right';
   return 'center';
 }
 
