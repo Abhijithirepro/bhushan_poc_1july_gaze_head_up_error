@@ -304,11 +304,13 @@ function medianOf(buf) {
 }
 
 // Global thresholds from worker (DEFAULT_GLOBAL_THRESHOLDS)
+// upT and downSoftT loosened slightly so natural eye movements
+// reach the up/down bands (worker values: upT=0.32, downSoftT=0.62)
 var leftT     = 0.42;
 var rightT    = 0.58;
 var downT     = 0.72;
-var upT       = 0.32;
-var downSoftT = 0.62;
+var upT       = 0.42;
+var downSoftT = 0.55;
 
 // classifyGaze — exact copy from worker
 function classifyGaze(h, v) {
@@ -566,6 +568,7 @@ var irisVisible    = 0;
 var capCanvas      = document.createElement('canvas');
 var capCtx         = capCanvas.getContext('2d');
 var prevGaze       = null;
+var prevLogGaze    = null;
 var recordedFrames = [];
 var sessionStartMs = 0;
 
@@ -641,7 +644,10 @@ function captureAndProcess() {
     pushSmooth(vBuf, rawV);
     var hRatio = medianOf(hBuf);
     var vRatio = medianOf(vBuf);
-    var gaze   = classifyGaze(hRatio, vRatio);
+    // Invert H ratio to match mirrored video — landmark coords are unmirrored,
+    // so iris moving right in frame = person looking left without inversion.
+    var mirroredH = hRatio !== null ? 1 - hRatio : null;
+    var gaze   = classifyGaze(mirroredH, vRatio);
 
     // irisQuality: worker defaults to 1 when not provided; we track visible frames
     // when hRatio/vRatio are not null (iris geometry is valid)
@@ -653,8 +659,11 @@ function captureAndProcess() {
     // ── Service path: extract yaw/pitch/blendshapes for raw display ──
     var pose   = estimateYawPitchNose(lm);
 
-    var logGaze = (pose.pitchDeg < -8) ? 'head_up' : gaze;
-    console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: true, gaze: logGaze, h_ratio: hRatio, v_ratio: vRatio });
+    var logGaze = (pose.pitchDeg < -5) ? 'head_up' : gaze;
+    if (logGaze !== prevLogGaze) {
+      console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: true, gaze: logGaze });
+      prevLogGaze = logGaze;
+    }
     var jaw    = jawOpenScore(result.faceBlendshapes);
     var blends = extractBlendshapes(result.faceBlendshapes);
 
@@ -662,7 +671,7 @@ function captureAndProcess() {
 
     // Head pose indicators — using yaw/pitch from service's estimateYawPitchNose
     var headCenter = Math.abs(pose.yawDeg) <= 10 && Math.abs(pose.pitchDeg) <= 10;
-    var headUp     = pose.pitchDeg < -8;
+    var headUp     = pose.pitchDeg < -5;
 
     var hcBox = document.getElementById('headCenterBox');
     var huBox = document.getElementById('headUpBox');
@@ -752,7 +761,7 @@ btnStart.addEventListener('click', async function() {
     }
   }
 
-  frameCount = 0; irisVisible = 0; prevGaze = null;
+  frameCount = 0; irisVisible = 0; prevGaze = null; prevLogGaze = null;
   recordedFrames = []; sessionStartMs = Date.now();
   hBuf = []; vBuf = [];  // reset smoothing buffers
   document.getElementById('result').style.display = 'none';
