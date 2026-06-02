@@ -120,6 +120,22 @@
       No face / away: <span id="awayLabel" style="font-weight:bold;color:#888;">—</span>
     </div>
 
+    <!-- Head pose indicators (from service's yaw/pitch) -->
+    <div style="display:flex;gap:8px;">
+      <div id="headCenterBox" style="
+        padding:10px 18px; border-radius:4px; border:2px solid #bbb;
+        font-size:13px; font-weight:bold; color:#888; background:#eee;
+        transition:all 0.15s;">
+        HEAD CENTER
+      </div>
+      <div id="headUpBox" style="
+        padding:10px 18px; border-radius:4px; border:2px solid #bbb;
+        font-size:13px; font-weight:bold; color:#888; background:#eee;
+        transition:all 0.15s;">
+        HEAD UP
+      </div>
+    </div>
+
     <!-- Raw values from service's extraction (same fields service stores in sampleBuffer) -->
     <div id="rawBox">
       <div><b>Gaze State:</b>    <span id="rv-gaze">—</span></div>
@@ -642,6 +658,31 @@ function captureAndProcess() {
     var blends = extractBlendshapes(result.faceBlendshapes);
 
     highlightGaze(gaze);
+
+    // Head pose indicators — using yaw/pitch from service's estimateYawPitchNose
+    var headCenter = Math.abs(pose.yawDeg) <= 10 && Math.abs(pose.pitchDeg) <= 10;
+    var headUp     = pose.pitchDeg < -8;
+
+    var hcBox = document.getElementById('headCenterBox');
+    var huBox = document.getElementById('headUpBox');
+    if (headCenter) {
+      hcBox.style.background   = '#22aa44';
+      hcBox.style.borderColor  = '#006622';
+      hcBox.style.color        = '#fff';
+    } else {
+      hcBox.style.background   = '#eee';
+      hcBox.style.borderColor  = '#bbb';
+      hcBox.style.color        = '#888';
+    }
+    if (headUp) {
+      huBox.style.background   = '#1976d2';
+      huBox.style.borderColor  = '#0d47a1';
+      huBox.style.color        = '#fff';
+    } else {
+      huBox.style.background   = '#eee';
+      huBox.style.borderColor  = '#bbb';
+      huBox.style.color        = '#888';
+    }
 
     // Update raw values panel
     document.getElementById('rv-gaze').textContent     = gaze.toUpperCase().replace(/_/g,' ');
