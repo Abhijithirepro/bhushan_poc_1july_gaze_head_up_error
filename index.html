@@ -24,11 +24,17 @@
     /* right panel */
     #rightPanel { display: flex; flex-direction: column; gap: 16px; }
 
-    /* gaze grid */
+    /* ── 3x3 gaze grid — matches worker's 9 gaze states exactly ── */
+    /*
+      Layout:
+        left_up   | center_up | right_up
+        left      | center    | right
+        left_down | down      | right_down
+    */
     #gazeGrid {
       display: grid;
       grid-template-columns: repeat(3, 90px);
-      grid-template-rows:    70px 70px;
+      grid-template-rows:    repeat(3, 70px);
       gap: 4px;
     }
     .gcell {
@@ -38,13 +44,9 @@
       border-radius: 4px; color: #555;
       transition: background 0.15s, color 0.15s;
     }
-    .gcell.active {
-      background: #ff4444; color: #fff; border-color: #cc0000;
-    }
-    /* special colour for center = good */
-    .gcell.active.center-cell { background: #22aa44; border-color: #006622; }
-    /* up spans full width */
-    #cell-up { grid-column: 1 / -1; }
+    .gcell.active            { background: #ff4444; color: #fff; border-color: #cc0000; }
+    .gcell.active.center-cell{ background: #22aa44; color: #fff; border-color: #006622; }
+    .gcell.active.away-cell  { background: #888;    color: #fff; border-color: #555; }
 
     /* raw numbers */
     #rawBox {
@@ -56,7 +58,7 @@
 
     #statusLine { font-size: 13px; color: #666; margin-top: 4px; }
 
-    /* ── Analysis result (shown after Stop) ── */
+    /* ── Analysis result ── */
     #result { display: none; margin-top: 24px; max-width: 860px; }
     #result h3 { margin: 0 0 12px; font-size: 16px; }
 
@@ -74,7 +76,6 @@
       display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
       margin-bottom: 16px;
     }
-
     .result-section {
       background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 12px 16px;
     }
@@ -91,10 +92,10 @@
       display: flex; justify-content: space-between; gap: 8px;
     }
     #factorsList li:last-child { border-bottom: none; }
-    .factor-name  { color: #333; }
-    .factor-val   { color: #666; font-style: italic; white-space: nowrap; }
-    .factor-trig  { color: #c00; font-weight: bold; white-space: nowrap; }
-    .factor-ok    { color: #888; white-space: nowrap; }
+    .factor-name { color: #333; }
+    .factor-val  { color: #666; font-style: italic; white-space: nowrap; }
+    .factor-trig { color: #c00; font-weight: bold; white-space: nowrap; }
+    .factor-ok   { color: #888; white-space: nowrap; }
 
     #reasonText { font-size: 13px; color: #555; margin-top: 8px; line-height: 1.6; }
   </style>
@@ -119,27 +120,44 @@
 
   <div id="rightPanel">
 
-    <!-- Simplified Gaze Grid: UP (full width) + LEFT / CENTER / RIGHT -->
+    <!--
+      9-state gaze grid — matches worker's gaze taxonomy exactly:
+        left_up   | center_up | right_up
+        left      | center    | right
+        left_down | down      | right_down
+      'away' shown when no face detected
+    -->
     <div id="gazeGrid">
-      <div class="gcell" id="cell-up">UP</div>
+      <div class="gcell" id="cell-left_up">LEFT<br>UP</div>
+      <div class="gcell center-cell" id="cell-center_up">CENTER<br>UP</div>
+      <div class="gcell" id="cell-right_up">RIGHT<br>UP</div>
 
       <div class="gcell" id="cell-left">LEFT</div>
       <div class="gcell center-cell" id="cell-center">CENTER</div>
       <div class="gcell" id="cell-right">RIGHT</div>
+
+      <div class="gcell" id="cell-left_down">LEFT<br>DOWN</div>
+      <div class="gcell" id="cell-down">DOWN</div>
+      <div class="gcell" id="cell-right_down">RIGHT<br>DOWN</div>
     </div>
 
-    <!-- Raw tracked values -->
+    <!-- Away indicator (shown separately since it doesn't fit in directional grid) -->
+    <div style="font-size:12px;color:#888;">
+      No face: <span id="awayIndicator" style="font-weight:bold;color:#888;">—</span>
+    </div>
+
+    <!-- Raw tracked values (from service's extraction) -->
     <div id="rawBox">
-      <div><b>Gaze State:</b>   <span id="rv-gaze">—</span></div>
-      <div><b>Yaw (L/R):</b>    <span id="rv-yaw">—</span></div>
-      <div><b>Pitch (U/D):</b>  <span id="rv-pitch">—</span></div>
-      <div><b>Jaw Open:</b>     <span id="rv-jaw">—</span></div>
-      <div><b>Eye Look Down:</b><span id="rv-lookDown">—</span></div>
-      <div><b>Eye Look Up:</b>  <span id="rv-lookUp">—</span></div>
-      <div><b>Eye Look Out:</b> <span id="rv-lookOut">—</span></div>
-      <div><b>Eye Look In:</b>  <span id="rv-lookIn">—</span></div>
-      <div><b>Eye Blink:</b>    <span id="rv-blink">—</span></div>
-      <div><b>Frames:</b>       <span id="rv-frames">0</span></div>
+      <div><b>Gaze State:</b>    <span id="rv-gaze">—</span></div>
+      <div><b>Yaw (L/R):</b>     <span id="rv-yaw">—</span></div>
+      <div><b>Pitch (U/D):</b>   <span id="rv-pitch">—</span></div>
+      <div><b>Jaw Open:</b>      <span id="rv-jaw">—</span></div>
+      <div><b>Eye Look Down:</b> <span id="rv-lookDown">—</span></div>
+      <div><b>Eye Look Up:</b>   <span id="rv-lookUp">—</span></div>
+      <div><b>Eye Look Out:</b>  <span id="rv-lookOut">—</span></div>
+      <div><b>Eye Look In:</b>   <span id="rv-lookIn">—</span></div>
+      <div><b>Eye Blink:</b>     <span id="rv-blink">—</span></div>
+      <div><b>Frames:</b>        <span id="rv-frames">0</span></div>
     </div>
 
   </div>
@@ -166,7 +184,6 @@
   <div id="reasonText"></div>
 </div>
 
-<!-- MediaPipe tasks-vision -->
 <script type="importmap">
 {
   "imports": {
@@ -177,7 +194,10 @@
 <script type="module">
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
-// ── Landmark indices (from reading-detection-using-gaze.service.ts) ─────────
+// ══════════════════════════════════════════════════════════════════════════════
+// FROM reading-detection-using-gaze.service.ts — landmark indices + extractors
+// ══════════════════════════════════════════════════════════════════════════════
+
 var LMIDX = {
   NOSE_TIP:        1,
   LEFT_EYE_OUTER:  33,
@@ -186,7 +206,7 @@ var LMIDX = {
   FOREHEAD:        10,
 };
 
-// ── estimateYawPitchNose (exact copy from service) ───────────────────────────
+// Exact copy from service: estimateYawPitchNose
 function estimateYawPitchNose(landmarks) {
   var le       = landmarks[LMIDX.LEFT_EYE_OUTER];
   var re       = landmarks[LMIDX.RIGHT_EYE_OUTER];
@@ -196,9 +216,9 @@ function estimateYawPitchNose(landmarks) {
 
   if (!le || !re || !nose) return { yawDeg: 0, pitchDeg: 0 };
 
-  var eyeMidX = (le.x + re.x) / 2;
-  var eyeW    = Math.abs(re.x - le.x) || 1e-6;
-  var yawDeg  = ((nose.x - eyeMidX) / eyeW) * 85;
+  var eyeMidX   = (le.x + re.x) / 2;
+  var eyeW      = Math.abs(re.x - le.x) || 1e-6;
+  var yawDeg    = ((nose.x - eyeMidX) / eyeW) * 85;
 
   var eyeMidY   = (le.y + re.y) / 2;
   var chinY     = chin     ? chin.y     : 0;
@@ -209,7 +229,7 @@ function estimateYawPitchNose(landmarks) {
   return { yawDeg: yawDeg, pitchDeg: pitchDeg };
 }
 
-// ── jawOpenScore (exact copy from service) ───────────────────────────────────
+// Exact copy from service: jawOpenScore
 function jawOpenScore(blendshapes) {
   if (!blendshapes || !blendshapes.length) return 0;
   var cats = blendshapes[0].categories || [];
@@ -219,15 +239,13 @@ function jawOpenScore(blendshapes) {
   return 0;
 }
 
-// ── extractBlendshapes (exact copy from service) ─────────────────────────────
+// Exact copy from service: extractBlendshapes
 function extractBlendshapes(blendshapes) {
-  var out = { eyeLookDown:0, eyeLookUp:0, eyeLookOut:0, eyeLookIn:0, eyeBlink:0 };
+  var out = { eyeLookDown: 0, eyeLookUp: 0, eyeLookOut: 0, eyeLookIn: 0, eyeBlink: 0 };
   if (!blendshapes || !blendshapes.length) return out;
   var cats   = blendshapes[0].categories || [];
   var scores = {};
-  for (var i = 0; i < cats.length; i++) {
-    scores[cats[i].categoryName] = cats[i].score;
-  }
+  for (var i = 0; i < cats.length; i++) { scores[cats[i].categoryName] = cats[i].score; }
   function avg(a, b) { return ((scores[a] || 0) + (scores[b] || 0)) / 2; }
   out.eyeLookDown = avg('eyeLookDownLeft', 'eyeLookDownRight');
   out.eyeLookUp   = avg('eyeLookUpLeft',   'eyeLookUpRight');
@@ -237,38 +255,61 @@ function extractBlendshapes(blendshapes) {
   return out;
 }
 
-// ── Gaze state classification ─────────────────────────────────────────────────
-// Up variants (left_up, center_up, right_up) all collapse to 'up'.
-// Down variants collapse to their lateral/center equivalent (no down tracking).
-function classifyGazeFromPose(yawDeg, pitchDeg) {
-  var isLeft  = yawDeg >  10;   // mirrored video: positive yaw = person's left
-  var isRight = yawDeg < -10;
-  var isUp    = pitchDeg < -5;
+// ══════════════════════════════════════════════════════════════════════════════
+// FROM gaze-detection.worker.ts — gaze classification into the same 9 states
+// Worker uses iris H/V ratios; we map yaw/pitch degrees to the same taxonomy:
+//   center_up                        ← pitch strongly up
+//   left_up   center   right_up      ← neutral vertical, lateral / center
+//   left_down  down    right_down    ← pitch down-soft, lateral / center
+//   away                             ← no face detected
+// ══════════════════════════════════════════════════════════════════════════════
 
-  // Any upward gaze → UP regardless of lateral position
-  if (isUp) return 'up';
+// Degree thresholds calibrated to mirror the worker's iris-ratio bands:
+//   worker left  < 0.42  →  yaw > +10°  (mirrored camera)
+//   worker right > 0.58  →  yaw < -10°
+//   worker up    < 0.32  →  pitch < -8°
+//   worker downSoft>0.62 →  pitch >  8°
+//   worker down  > 0.72  →  pitch > 18°  (strong down override)
+var YAW_LEFT     =  10;   // degrees: looking to person's left
+var YAW_RIGHT    = -10;   // degrees: looking to person's right
+var PITCH_UP     =  -8;   // degrees: looking upward
+var PITCH_DOWN_SOFT = 8;  // degrees: lower band (left_down / right_down / down)
+var PITCH_DOWN_HARD = 18; // degrees: strong-down override
 
-  // Lateral only (ignore downward pitch — treat as same lateral/center level)
-  if (isLeft)  return 'left';
-  if (isRight) return 'right';
+function classifyGaze(yawDeg, pitchDeg) {
+  var isLeft     = yawDeg >  YAW_LEFT;
+  var isRight    = yawDeg <  YAW_RIGHT;
+  var isUp       = pitchDeg < PITCH_UP;
+  var isDownSoft = pitchDeg > PITCH_DOWN_SOFT;
+  var isDownHard = pitchDeg > PITCH_DOWN_HARD;
+
+  // Strong-down override when NOT strongly lateral (same logic as worker)
+  if (isDownHard && !isLeft && !isRight) return 'down';
+
+  if (isLeft  && isUp)       return 'left_up';
+  if (isLeft  && isDownSoft) return 'left_down';
+  if (isRight && isUp)       return 'right_up';
+  if (isRight && isDownSoft) return 'right_down';
+  if (isLeft)                return 'left';
+  if (isRight)               return 'right';
+  if (isUp)                  return 'center_up';
+  if (isDownSoft)            return 'down';
   return 'center';
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// Analysis logic — copied verbatim from gaze-detection.worker.ts
-// (computeStats + computeVerdict + their helpers/constants)
+// FROM gaze-detection.worker.ts — computeStats + computeVerdict (unchanged)
 // ══════════════════════════════════════════════════════════════════════════════
 
 var CFG_CHEAT = {
   lat: 10.0, lrc: 4.0, mld: 3.0, away: 25.0, cad: 3.5,
   down: 18.0, dnd: 2.5, latLow: 1.5, mldLow: 2.0, latUp: 15.0,
 };
-
 var activeWeights = { lat: 3, lrc: 3, mld: 2, away: 2, cad: 1, down: 2, dnd: 1, latLow: 4, mldLow: 3, latUp: 1 };
-var maxScore = 22; // sum of all weights above
+var maxScore = 22;
 
-var LATERAL_STATES = new Set(['left', 'left_up', 'left_down', 'right', 'right_up', 'right_down']);
-var CENTER_STATES  = new Set(['center', 'center_up']);
+var LATERAL_STATES = new Set(['left','left_up','left_down','right','right_up','right_down']);
+var CENTER_STATES  = new Set(['center','center_up']);
 
 function isLateralGaze(g) { return LATERAL_STATES.has(g); }
 function isCenterLike(g)  { return CENTER_STATES.has(g); }
@@ -292,7 +333,6 @@ function computeStats(frames, duration, irisVisible) {
   }
   var tf = face.length;
 
-  // Build runs of consecutive same-gaze
   var runs = [];
   var rs = face[0].time, rg = face[0].gaze;
   for (var i = 1; i < face.length; i++) {
@@ -303,14 +343,12 @@ function computeStats(frames, duration, irisVisible) {
   }
   runs.push({ gaze: rg, start: rs, end: face[face.length-1].time, dur: +((face[face.length-1].time - rs).toFixed(2)) });
 
-  // Lateral transitions
   var latAllT = 0;
   for (var j = 1; j < face.length; j++) {
     var p = face[j-1].gaze, c = face[j].gaze;
     if (c !== p && (isLateralGaze(c) || isLateralGaze(p))) latAllT++;
   }
 
-  // Look-read cycles (non-center → center)
   var lrE = [];
   for (var k = 0; k < runs.length - 1; k++) {
     var g0 = runs[k].gaze;
@@ -335,13 +373,13 @@ function computeStats(frames, duration, irisVisible) {
   function maxDur(arr) {
     if (!arr.length) return 0;
     var m = 0;
-    for (var i = 0; i < arr.length; i++) { if (arr[i].dur > m) m = arr[i].dur; }
+    for (var ii = 0; ii < arr.length; ii++) { if (arr[ii].dur > m) m = arr[ii].dur; }
     return +m.toFixed(2);
   }
   function avgDur(arr) {
     if (!arr.length) return 0;
     var s = 0;
-    for (var i = 0; i < arr.length; i++) { s += arr[i].dur; }
+    for (var ii = 0; ii < arr.length; ii++) { s += arr[ii].dur; }
     return +(s / arr.length).toFixed(2);
   }
 
@@ -380,9 +418,9 @@ function computeStats(frames, duration, irisVisible) {
     runs:                 runs.slice(0, 500),
     lrEvents:             lrE.slice(0, 100),
     lateral_pct: {
-      eye_level: +(((rawCnt['left']     || 0) + (rawCnt['right']     || 0)) / tf * 100).toFixed(1),
-      upper:     +(((rawCnt['left_up']  || 0) + (rawCnt['right_up']  || 0)) / tf * 100).toFixed(1),
-      lower:     +(((rawCnt['left_down']|| 0) + (rawCnt['right_down']|| 0)) / tf * 100).toFixed(1),
+      eye_level: +(((rawCnt['left']      || 0) + (rawCnt['right']      || 0)) / tf * 100).toFixed(1),
+      upper:     +(((rawCnt['left_up']   || 0) + (rawCnt['right_up']   || 0)) / tf * 100).toFixed(1),
+      lower:     +(((rawCnt['left_down'] || 0) + (rawCnt['right_down'] || 0)) / tf * 100).toFixed(1),
     },
     lateral_eye_per_min:  +(lEyeRuns.length / dm).toFixed(2),
     lateral_up_per_min:   +(lUpRuns.length  / dm).toFixed(2),
@@ -397,15 +435,14 @@ function computeStats(frames, duration, irisVisible) {
 
 function computeVerdict(stats) {
   if (stats.error) {
-    return { label: 'UNKNOWN', confidence: 0, color: 'orange', reason: stats.error, factors: [] };
+    return { label: 'UNKNOWN', confidence: 0, color: 'unknown', reason: stats.error, factors: [] };
   }
 
   var tLat=CFG_CHEAT.lat, tLrc=CFG_CHEAT.lrc, tMld=CFG_CHEAT.mld, tAway=CFG_CHEAT.away,
       tCad=CFG_CHEAT.cad, tDown=CFG_CHEAT.down, tDnd=CFG_CHEAT.dnd,
       tLatLow=CFG_CHEAT.latLow, tMldLow=CFG_CHEAT.mldLow, tLatUp=CFG_CHEAT.latUp;
 
-  var score = 0;
-  var factors = [];
+  var score = 0, factors = [];
 
   function addF(name, val, thresh, trig, w, sev) {
     if (trig) score += w;
@@ -441,18 +478,18 @@ function computeVerdict(stats) {
   var trigDown = qualityOK && dn  >= tDown;
   var trigDnd  = qualityOK && dnd >= tDnd;
 
-  addF('Lateral Gaze Frequency',           lat    + '/min', '>'  + tLat    + '/min', trigLat,    activeWeights.lat,    lat    >= tLat*1.4    ? 'high' : 'medium');
-  addF('Look-Read Cycles',                 lrc    + '/min', '>'  + tLrc    + '/min', trigLrc,    activeWeights.lrc,    lrc    >= tLrc*1.4    ? 'high' : 'medium');
-  addF('Sustained Lateral Gaze',           mld    + 's',    '>'  + tMld    + 's',    trigMld,    activeWeights.mld,    mld    >= 8           ? 'high' : 'medium');
-  addF('Away Gaze / Head Turning',         aw     + '%',    '>'  + tAway   + '%',    trigAway,   activeWeights.away,   aw     >= tAway*1.3   ? 'high' : 'medium');
-  addF('Short Attention Span',             cad    + 's avg','<'  + tCad    + 's avg',trigCad,    activeWeights.cad,    'medium');
-  addF('Down Gaze (Reading Below)',        dn     + '%',    '>'  + tDown   + '%',    trigDown,   activeWeights.down,   dn     >= tDown*1.3   ? 'high' : 'medium');
-  addF('Sustained Down Gaze',              dnd    + 's',    '>'  + tDnd    + 's',    trigDnd,    activeWeights.dnd,    dnd    >= 6           ? 'high' : 'medium');
-  addF('Lower Lateral Gaze (Phone/Notes)', latLow + '/min', '>'  + tLatLow + '/min', trigLatLow, activeWeights.latLow, latLow >= tLatLow*2   ? 'high' : 'medium');
-  addF('Sustained Lower Lateral Gaze',    mldLow + 's',    '>'  + tMldLow + 's',    trigMldLow, activeWeights.mldLow, mldLow >= 4           ? 'high' : 'medium');
-  addF('Upper Lateral Gaze (Thinking)',    latUp  + '/min', '>'  + tLatUp  + '/min', trigLatUp,  activeWeights.latUp,  'low');
+  addF('Lateral Gaze Frequency',           lat    + '/min', '>' + tLat    + '/min', trigLat,    activeWeights.lat,    lat    >= tLat*1.4  ? 'high':'medium');
+  addF('Look-Read Cycles',                 lrc    + '/min', '>' + tLrc    + '/min', trigLrc,    activeWeights.lrc,    lrc    >= tLrc*1.4  ? 'high':'medium');
+  addF('Sustained Lateral Gaze',           mld    + 's',    '>' + tMld    + 's',    trigMld,    activeWeights.mld,    mld    >= 8         ? 'high':'medium');
+  addF('Away Gaze / Head Turning',         aw     + '%',    '>' + tAway   + '%',    trigAway,   activeWeights.away,   aw     >= tAway*1.3 ? 'high':'medium');
+  addF('Short Attention Span',             cad    + 's avg','<' + tCad    + 's avg',trigCad,    activeWeights.cad,    'medium');
+  addF('Down Gaze (Reading Below)',        dn     + '%',    '>' + tDown   + '%',    trigDown,   activeWeights.down,   dn     >= tDown*1.3 ? 'high':'medium');
+  addF('Sustained Down Gaze',              dnd    + 's',    '>' + tDnd    + 's',    trigDnd,    activeWeights.dnd,    dnd    >= 6         ? 'high':'medium');
+  addF('Lower Lateral Gaze (Phone/Notes)', latLow + '/min', '>' + tLatLow + '/min', trigLatLow, activeWeights.latLow, latLow >= tLatLow*2 ? 'high':'medium');
+  addF('Sustained Lower Lateral Gaze',     mldLow + 's',    '>' + tMldLow + 's',    trigMldLow, activeWeights.mldLow, mldLow >= 4         ? 'high':'medium');
+  addF('Upper Lateral Gaze (Thinking)',    latUp  + '/min', '>' + tLatUp  + '/min', trigLatUp,  activeWeights.latUp,  'low');
 
-  var qualityPenalty = qualityOK ? 0 : Math.min(22, Math.round(Math.max(0, aw-55)*0.25 + (0.75 - Math.min(0.75, fdr))*30));
+  var qualityPenalty = qualityOK ? 0 : Math.min(22, Math.round(Math.max(0, aw-55)*0.25 + (0.75-Math.min(0.75,fdr))*30));
   var cRaw  = maxScore > 0 ? (score / maxScore) * 100 : 0;
   var nTrig = factors.filter(function(f){ return f.triggered; }).length;
 
@@ -474,7 +511,6 @@ function computeVerdict(stats) {
     confidence = Math.min(97, Math.max(55, Math.round(68 + (1-cRaw/100)*29 - qualityPenalty)));
   }
 
-  // Flip confidence to cheating-mode
   var nonCheatConf = confidence;
   if (color === 'ok' || color === 'unknown') {
     confidence = Math.max(0, Math.min(100, 100 - nonCheatConf));
@@ -494,51 +530,49 @@ function computeVerdict(stats) {
 
 // ── Show analysis result ──────────────────────────────────────────────────────
 function showResult(recordedFrames, durationSec) {
-  var stats   = computeStats(recordedFrames, durationSec, recordedFrames.filter(function(f){ return f.face_detected; }).length);
+  var faceFrames = recordedFrames.filter(function(f){ return f.face_detected; });
+  var stats   = computeStats(recordedFrames, durationSec, faceFrames.length);
   var verdict = computeVerdict(stats);
 
-  var resultDiv  = document.getElementById('result');
   var verdictBox = document.getElementById('verdictBox');
-
-  // Verdict box
   verdictBox.textContent = verdict.label + '  (' + verdict.confidence + '% confidence)';
   verdictBox.className   = 'verdict-' + verdict.color;
 
-  // Key stats
+  function row(label, val) {
+    return '<div class="stat-row"><span class="stat-label">' + label + '</span><span class="stat-val">' + val + '</span></div>';
+  }
+
   var statsHtml = '';
-  function row(label, val) { return '<div class="stat-row"><span class="stat-label">' + label + '</span><span class="stat-val">' + val + '</span></div>'; }
   statsHtml += row('Duration',              durationSec.toFixed(1) + 's');
   statsHtml += row('Total frames',          stats.total_frames);
   statsHtml += row('Face detected',         stats.face_detected_frames + ' (' + (stats.face_detection_rate*100).toFixed(0) + '%)');
   statsHtml += row('Lateral gaze /min',     stats.lateral_eye_per_min != null ? stats.lateral_eye_per_min : stats.lateral_per_min);
   statsHtml += row('Look-read cycles /min', stats.look_read_per_min);
-  statsHtml += row('Max sustained lateral', stats.lateral_eye_max_dur != null ? stats.lateral_eye_max_dur + 's' : stats.lateral_max_dur + 's');
-  statsHtml += row('Max sustained down',    stats.down_max_dur + 's');
+  statsHtml += row('Max lateral run',       (stats.lateral_eye_max_dur != null ? stats.lateral_eye_max_dur : stats.lateral_max_dur) + 's');
+  statsHtml += row('Max down run',          stats.down_max_dur + 's');
   statsHtml += row('Center avg dur',        stats.center_avg_dur + 's');
   statsHtml += row('Score',                 verdict.score + ' / ' + verdict.max_score);
   document.getElementById('statsTable').innerHTML = statsHtml;
 
-  // Gaze distribution
   var gp = stats.gaze_pct || {};
   var distHtml = '';
-  var gazePairs = [
-    ['Center',      (+(gp.center||0) + +(gp.center_up||0)).toFixed(1)],
-    ['↑ Center Up', gp.center_up   || 0],
-    ['← Left',      gp.left        || 0],
-    ['↖ Left Up',   gp.left_up     || 0],
-    ['↙ Left Down', gp.left_down   || 0],
-    ['→ Right',     gp.right       || 0],
-    ['↗ Right Up',  gp.right_up    || 0],
-    ['↘ Right Down',gp.right_down  || 0],
-    ['↓ Down',      gp.down        || 0],
-    ['✕ Away',      gp.away        || 0],
+  var pairs = [
+    ['Center',       (+(gp.center||0) + +(gp.center_up||0)).toFixed(1)],
+    ['↑ Center Up',  gp.center_up   || 0],
+    ['← Left',       gp.left        || 0],
+    ['↖ Left Up',    gp.left_up     || 0],
+    ['↙ Left Down',  gp.left_down   || 0],
+    ['→ Right',      gp.right       || 0],
+    ['↗ Right Up',   gp.right_up    || 0],
+    ['↘ Right Down', gp.right_down  || 0],
+    ['↓ Down',       gp.down        || 0],
+    ['✕ Away',       gp.away        || 0],
   ];
-  for (var gi = 0; gi < gazePairs.length; gi++) {
-    distHtml += row(gazePairs[gi][0], gazePairs[gi][1] + '%');
+  for (var gi = 0; gi < pairs.length; gi++) {
+    distHtml += row(pairs[gi][0], pairs[gi][1] + '%');
   }
   document.getElementById('gazeDistTable').innerHTML = distHtml;
 
-  // Factors
   var fList = document.getElementById('factorsList');
   fList.innerHTML = '';
   for (var fi = 0; fi < verdict.factors.length; fi++) {
@@ -547,21 +581,18 @@ function showResult(recordedFrames, durationSec) {
     li.innerHTML =
       '<span class="factor-name">' + f.name + '</span>' +
       '<span class="factor-val">' + f.value + ' (thresh ' + f.threshold + ')</span>' +
-      (f.triggered
-        ? '<span class="factor-trig">▲ TRIGGERED</span>'
-        : '<span class="factor-ok">✓ ok</span>');
+      (f.triggered ? '<span class="factor-trig">▲ TRIGGERED</span>' : '<span class="factor-ok">✓ ok</span>');
     fList.appendChild(li);
   }
 
   document.getElementById('reasonText').textContent = verdict.reason;
-  resultDiv.style.display = 'block';
+  document.getElementById('result').style.display = 'block';
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DOM refs + detection state
+// Detection loop
 // ══════════════════════════════════════════════════════════════════════════════
 
-// ── DOM refs ─────────────────────────────────────────────────────────────────
 var vid        = document.getElementById('vid');
 var overlay    = document.getElementById('overlay');
 var ctx        = overlay.getContext('2d');
@@ -569,33 +600,38 @@ var btnStart   = document.getElementById('btnStart');
 var btnStop    = document.getElementById('btnStop');
 var statusLine = document.getElementById('statusLine');
 
-// ── State ────────────────────────────────────────────────────────────────────
-var landmarker      = null;
-var stream          = null;
-var intervalId      = null;
-var frameCount      = 0;
-var capCanvas       = document.createElement('canvas');
-var capCtx          = capCanvas.getContext('2d');
-var prevGaze        = null;
-var recordedFrames  = [];   // { time, face_detected, gaze }
-var sessionStartMs  = 0;
+var landmarker     = null;
+var stream         = null;
+var intervalId     = null;
+var frameCount     = 0;
+var capCanvas      = document.createElement('canvas');
+var capCtx         = capCanvas.getContext('2d');
+var prevGaze       = null;
+var recordedFrames = [];
+var sessionStartMs = 0;
 
-// ── Highlight gaze grid cell ─────────────────────────────────────────────────
 function highlightGaze(gaze) {
   if (gaze === prevGaze) return;
   prevGaze = gaze;
-
   var cells = document.querySelectorAll('.gcell');
-  for (var i = 0; i < cells.length; i++) {
-    cells[i].classList.remove('active');
+  for (var i = 0; i < cells.length; i++) { cells[i].classList.remove('active'); }
+
+  // 'away' has no grid cell — show the away indicator text instead
+  var awayEl = document.getElementById('awayIndicator');
+  if (gaze === 'away') {
+    awayEl.textContent = 'NO FACE';
+    awayEl.style.color = '#c00';
+    return;
   }
+  awayEl.textContent = '—';
+  awayEl.style.color = '#888';
+
   var el = document.getElementById('cell-' + gaze);
   if (el) el.classList.add('active');
 }
 
-// ── Update raw values panel ───────────────────────────────────────────────────
 function updateRaw(gaze, yaw, pitch, jaw, blends) {
-  document.getElementById('rv-gaze').textContent     = gaze.toUpperCase().replace('_', ' ');
+  document.getElementById('rv-gaze').textContent     = gaze.toUpperCase().replace(/_/g, ' ');
   document.getElementById('rv-yaw').textContent      = yaw.toFixed(2) + '°';
   document.getElementById('rv-pitch').textContent    = pitch.toFixed(2) + '°';
   document.getElementById('rv-jaw').textContent      = jaw.toFixed(3);
@@ -607,18 +643,20 @@ function updateRaw(gaze, yaw, pitch, jaw, blends) {
   document.getElementById('rv-frames').textContent   = frameCount;
 }
 
-// ── Capture one frame and run detection ──────────────────────────────────────
+// captureAndProcess runs at 3 FPS — same rate as service (targetFPS: 3)
 function captureAndProcess() {
   if (!vid || vid.readyState < 2) return;
   var vw = vid.videoWidth, vh = vid.videoHeight;
   if (!vw || !vh) return;
 
-  // Resize canvas to 320px wide (same as service)
+  // Capture at 320px wide — same as service
   var scale = 320 / vw;
   var dw = 320, dh = Math.round(vh * scale);
   if (capCanvas.width !== dw)  capCanvas.width  = dw;
   if (capCanvas.height !== dh) capCanvas.height = dh;
   capCtx.drawImage(vid, 0, 0, dw, dh);
+
+  var tSec = (Date.now() - sessionStartMs) / 1000;
 
   createImageBitmap(capCanvas).then(function(bitmap) {
     var result;
@@ -627,38 +665,36 @@ function captureAndProcess() {
     bitmap.close();
 
     frameCount++;
-    var tSec = (Date.now() - sessionStartMs) / 1000;
 
     if (!result.faceLandmarks || !result.faceLandmarks.length) {
-      // Record a no-face frame (same as worker does)
+      // No face — record as 'away' (same as worker: face_detected=false, gaze='no_face')
       recordedFrames.push({ time: +tSec.toFixed(2), face_detected: false, gaze: 'no_face' });
-      highlightGaze('center');
+      highlightGaze('away');
+      console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: false, gaze: 'away' });
       return;
     }
 
     var lm     = result.faceLandmarks[0];
-    var pose   = estimateYawPitchNose(lm);
-    var jaw    = jawOpenScore(result.faceBlendshapes);
-    var blends = extractBlendshapes(result.faceBlendshapes);
-    var gaze   = classifyGazeFromPose(pose.yawDeg, pose.pitchDeg);
+    var pose   = estimateYawPitchNose(lm);   // from service
+    var jaw    = jawOpenScore(result.faceBlendshapes);       // from service
+    var blends = extractBlendshapes(result.faceBlendshapes); // from service
+    var gaze   = classifyGaze(pose.yawDeg, pose.pitchDeg);   // → same 9 states as worker
 
-    // Record frame — same shape computeStats expects
+    // Record frame in the shape computeStats expects
     recordedFrames.push({ time: +tSec.toFixed(2), face_detected: true, gaze: gaze });
+
+    console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: true, gaze: gaze });
 
     highlightGaze(gaze);
     updateRaw(gaze, pose.yawDeg, pose.pitchDeg, jaw, blends);
 
-    // Draw dots on key landmarks
+    // Draw key landmark dots on video overlay
     overlay.width  = vid.offsetWidth  || 480;
     overlay.height = vid.offsetHeight || 360;
     ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-    var scaleX = overlay.width  / vw;
-    var scaleY = overlay.height / vh;
-
-    // flip X because video is mirrored
+    var scaleX = overlay.width / vw, scaleY = overlay.height / vh;
     ctx.fillStyle = '#00ff88';
-    var keys = [1,33,263,152,10,61,291,4,468,473];
+    var keys = [1, 33, 263, 152, 10, 61, 291, 4, 468, 473];
     for (var i = 0; i < keys.length; i++) {
       var pt = lm[keys[i]];
       if (!pt) continue;
@@ -672,7 +708,6 @@ function captureAndProcess() {
   }).catch(function() {});
 }
 
-// ── Start ─────────────────────────────────────────────────────────────────────
 btnStart.addEventListener('click', async function() {
   btnStart.disabled = true;
   statusLine.textContent = 'Requesting camera...';
@@ -702,8 +737,8 @@ btnStart.addEventListener('click', async function() {
         runningMode:                'IMAGE',
         numFaces:                   1,
         outputFaceBlendshapes:      true,
-        minFaceDetectionConfidence: 0.4,
-        minFacePresenceConfidence:  0.4,
+        minFaceDetectionConfidence: 0.4,   // same as service
+        minFacePresenceConfidence:  0.4,   // same as service
       });
     } catch(e) {
       statusLine.textContent = 'Model load failed: ' + e.message;
@@ -712,24 +747,25 @@ btnStart.addEventListener('click', async function() {
     }
   }
 
-  frameCount      = 0;
-  prevGaze        = null;
-  recordedFrames  = [];
-  sessionStartMs  = Date.now();
+  frameCount     = 0;
+  prevGaze       = null;
+  recordedFrames = [];
+  sessionStartMs = Date.now();
   document.getElementById('result').style.display = 'none';
   statusLine.textContent = 'Running at 3 FPS…';
   btnStop.disabled = false;
 
-  // 3 FPS = 333ms interval (same as service targetFPS:3)
+  // 3 FPS = 333ms — same as service targetFPS: 3
   intervalId = setInterval(captureAndProcess, 333);
 });
 
-// ── Stop ──────────────────────────────────────────────────────────────────────
 btnStop.addEventListener('click', function() {
   clearInterval(intervalId);
   intervalId = null;
 
   var durationSec = (Date.now() - sessionStartMs) / 1000;
+
+  console.log('recordedFrames:', recordedFrames);
 
   if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
   vid.srcObject = null;
@@ -739,7 +775,6 @@ btnStop.addEventListener('click', function() {
   btnStop.disabled  = true;
   btnStart.disabled = false;
 
-  // Run analysis (same logic as the worker on 'stop' message)
   showResult(recordedFrames, durationSec);
   statusLine.textContent = 'Done. See analysis below.';
 });
