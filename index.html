@@ -4,57 +4,86 @@
   <meta charset="UTF-8" />
   <title>Gaze Detection POC</title>
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; }
-    h2   { margin: 0 0 16px; }
+    h2 { margin: 0 0 14px; }
 
-    #controls { margin-bottom: 14px; }
-    button    { padding: 8px 20px; font-size: 14px; cursor: pointer; margin-right: 8px; }
+    #modeTabs { margin-bottom: 12px; display: flex; gap: 0; }
+    .mode-tab {
+      padding: 8px 24px; font-size: 14px; cursor: pointer;
+      border: 2px solid #bbb; background: #e0e0e0; color: #555; margin: 0;
+    }
+    .mode-tab:first-child { border-radius: 6px 0 0 6px; }
+    .mode-tab:last-child  { border-radius: 0 6px 6px 0; border-left: none; }
+    .mode-tab.active { background: #1976d2; color: #fff; border-color: #1565c0; }
 
-    #main { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+    #controls { margin-bottom: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    #cameraControls { display: flex; align-items: center; gap: 8px; }
+    #videoUploadArea { display: none; align-items: center; gap: 10px; flex-wrap: wrap; }
+    button { padding: 8px 20px; font-size: 14px; cursor: pointer; border: 1px solid #aaa; background: #fff; border-radius: 4px; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #statusLine { font-size: 13px; color: #666; }
+    #fileNameDisplay { font-size: 13px; color: #555; font-style: italic; }
 
-    #videoBox { position: relative; }
-    video     { display: block; width: 480px; height: 360px; background: #000; }
+    #main { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 20px; }
+
+    #videoBox { position: relative; flex: 1; min-width: 50vw; }
+    video { display: block; width: 100%; height: auto; background: #000; border-radius: 4px 4px 0 0; }
     canvas#overlay {
       position: absolute; top: 0; left: 0;
-      width: 480px; height: 360px;
-      pointer-events: none;
+      width: 100%; height: 100%;
+      pointer-events: none; border-radius: 4px 4px 0 0;
     }
 
-    #rightPanel { display: flex; flex-direction: column; gap: 16px; }
+    #videoPlayerControls {
+      display: none; background: #1a1a2e; color: #eee;
+      padding: 8px 12px; border-radius: 0 0 4px 4px;
+      align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    #videoPlayerControls.visible { display: flex; }
+    #videoPlayerControls button {
+      background: transparent; border: none; color: #eee;
+      font-size: 18px; padding: 2px 8px; cursor: pointer; border-radius: 4px; min-width: 36px;
+    }
+    #videoPlayerControls button:hover { background: rgba(255,255,255,0.15); }
+    #seekBar { flex: 1; min-width: 80px; height: 4px; cursor: pointer; accent-color: #64b5f6; }
+    #volumeBar { width: 70px; height: 4px; cursor: pointer; accent-color: #64b5f6; }
+    #speedSelect {
+      background: #333; color: #eee; border: 1px solid #555;
+      padding: 3px 6px; border-radius: 4px; font-size: 13px; cursor: pointer;
+    }
+    #timeDisplay, #durationDisplay { font-size: 12px; white-space: nowrap; font-family: monospace; min-width: 36px; }
 
-    /*
-      9-state grid — exact taxonomy from gaze-detection.worker.ts:
-        left_up   | center_up | right_up
-        left      | center    | right
-        left_down | down      | right_down
-      + away shown separately (no usable iris data)
-    */
+    #rightPanel { display: flex; flex-direction: column; gap: 14px; width: 280px; flex-shrink: 0; }
+
     #gazeGrid {
       display: grid;
-      grid-template-columns: repeat(3, 90px);
-      grid-template-rows:    repeat(3, 70px);
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 60px);
       gap: 4px;
     }
     .gcell {
       display: flex; align-items: center; justify-content: center;
       background: #ddd; border: 2px solid #bbb;
       font-size: 11px; font-weight: bold; text-align: center;
-      border-radius: 4px; color: #555;
-      transition: background 0.15s, color 0.15s;
+      border-radius: 4px; color: #555; transition: background 0.15s, color 0.15s;
     }
     .gcell.active             { background: #ff4444; color: #fff; border-color: #cc0000; }
     .gcell.active.center-cell { background: #22aa44; color: #fff; border-color: #006622; }
 
     #rawBox {
       background: #fff; border: 1px solid #ccc; border-radius: 4px;
-      padding: 12px 16px; font-size: 13px; line-height: 2; min-width: 240px;
+      padding: 10px 14px; font-size: 13px; line-height: 1.9;
     }
     #rawBox b { display: inline-block; width: 130px; color: #333; }
 
-    #statusLine { font-size: 13px; color: #666; margin-top: 4px; }
+    .head-indicator {
+      padding: 8px 14px; border-radius: 4px; border: 2px solid #bbb;
+      font-size: 13px; font-weight: bold; color: #888; background: #eee;
+      transition: all 0.15s;
+    }
 
-    /* Result section */
-    #result { display: none; margin-top: 24px; max-width: 860px; }
+    #result { display: none; margin-top: 20px; max-width: 900px; }
     #result h3 { margin: 0 0 12px; font-size: 16px; }
     #verdictBox {
       padding: 14px 20px; border-radius: 6px; border: 2px solid;
@@ -86,17 +115,48 @@
 
 <h2>Gaze Detection POC</h2>
 
+<div id="modeTabs">
+  <button id="btnModeCamera" class="mode-tab active">Live Camera</button>
+  <button id="btnModeVideo"  class="mode-tab">Upload Video</button>
+</div>
+
 <div id="controls">
-  <button id="btnStart">Start</button>
-  <button id="btnStop" disabled>Stop</button>
+  <div id="cameraControls">
+    <button id="btnStart">Start</button>
+    <button id="btnStop" disabled>Stop</button>
+  </div>
+  <div id="videoUploadArea">
+    <button id="btnChooseFile">Choose Video</button>
+    <input type="file" id="fileInput" accept="video/*" style="display:none">
+    <span id="fileNameDisplay">No file chosen</span>
+    <button id="btnVideoStart" disabled>Start Analysis</button>
+    <button id="btnVideoStop"  disabled>Stop &amp; Analyze</button>
+  </div>
   <span id="statusLine">Press Start to begin.</span>
 </div>
 
 <div id="main">
 
   <div id="videoBox">
-    <video id="vid" autoplay muted playsinline></video>
+    <video id="vid" playsinline></video>
     <canvas id="overlay"></canvas>
+    <div id="videoPlayerControls">
+      <button id="btnPlayPause" title="Play/Pause">&#9654;</button>
+      <span id="timeDisplay">0:00</span>
+      <input type="range" id="seekBar" min="0" max="1000" value="0" step="1">
+      <span id="durationDisplay">0:00</span>
+      <select id="speedSelect" title="Playback Speed">
+        <option value="0.25">0.25&times;</option>
+        <option value="0.5">0.5&times;</option>
+        <option value="0.75">0.75&times;</option>
+        <option value="1" selected>1&times;</option>
+        <option value="1.25">1.25&times;</option>
+        <option value="1.5">1.5&times;</option>
+        <option value="2">2&times;</option>
+      </select>
+      <span style="font-size:14px;">&#128266;</span>
+      <input type="range" id="volumeBar" min="0" max="1" step="0.05" value="1" title="Volume">
+    </div>
   </div>
 
   <div id="rightPanel">
@@ -115,28 +175,15 @@
       <div class="gcell" id="cell-right_down">RIGHT<br>DOWN</div>
     </div>
 
-    <!-- away has no directional cell in the worker's grid, shown as text -->
     <div style="font-size:12px;color:#888;">
       No face / away: <span id="awayLabel" style="font-weight:bold;color:#888;">—</span>
     </div>
 
-    <!-- Head pose indicators (from service's yaw/pitch) -->
     <div style="display:flex;gap:8px;">
-      <div id="headCenterBox" style="
-        padding:10px 18px; border-radius:4px; border:2px solid #bbb;
-        font-size:13px; font-weight:bold; color:#888; background:#eee;
-        transition:all 0.15s;">
-        HEAD CENTER
-      </div>
-      <div id="headUpBox" style="
-        padding:10px 18px; border-radius:4px; border:2px solid #bbb;
-        font-size:13px; font-weight:bold; color:#888; background:#eee;
-        transition:all 0.15s;">
-        HEAD UP
-      </div>
+      <div id="headCenterBox" class="head-indicator">HEAD CENTER</div>
+      <div id="headUpBox"     class="head-indicator">HEAD UP</div>
     </div>
 
-    <!-- Raw values from service's extraction (same fields service stores in sampleBuffer) -->
     <div id="rawBox">
       <div><b>Gaze State:</b>    <span id="rv-gaze">—</span></div>
       <div><b>H ratio:</b>       <span id="rv-h">—</span></div>
@@ -185,10 +232,7 @@
 <script type="module">
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
-// ══════════════════════════════════════════════════════════════════════════════
-// FROM reading-detection-using-gaze.service.ts
-// Landmark indices + three helper methods, copied exactly.
-// ══════════════════════════════════════════════════════════════════════════════
+// ── Landmark helpers (from service) ──────────────────────────────────────────
 
 var LMIDX = { NOSE_TIP: 1, LEFT_EYE_OUTER: 33, RIGHT_EYE_OUTER: 263, CHIN: 152, FOREHEAD: 10 };
 
@@ -196,13 +240,11 @@ function estimateYawPitchNose(landmarks) {
   var le = landmarks[LMIDX.LEFT_EYE_OUTER], re = landmarks[LMIDX.RIGHT_EYE_OUTER];
   var nose = landmarks[LMIDX.NOSE_TIP], chin = landmarks[LMIDX.CHIN], forehead = landmarks[LMIDX.FOREHEAD];
   if (!le || !re || !nose) return { yawDeg: 0, pitchDeg: 0 };
-  var eyeMidX  = (le.x + re.x) / 2;
-  var eyeW     = Math.abs(re.x - le.x) || 1e-6;
-  var yawDeg   = ((nose.x - eyeMidX) / eyeW) * 85;
-  var eyeMidY  = (le.y + re.y) / 2;
-  var chinY    = chin     ? chin.y     : 0;
-  var foreY    = forehead ? forehead.y : 0;
-  var faceH    = Math.abs(chinY - foreY) || 1e-6;
+  var eyeMidX = (le.x + re.x) / 2, eyeW = Math.abs(re.x - le.x) || 1e-6;
+  var yawDeg  = ((nose.x - eyeMidX) / eyeW) * 85;
+  var eyeMidY = (le.y + re.y) / 2;
+  var chinY = chin ? chin.y : 0, foreY = forehead ? forehead.y : 0;
+  var faceH = Math.abs(chinY - foreY) || 1e-6;
   var pitchDeg = ((nose.y - eyeMidY) / faceH - 0.12) * 75;
   return { yawDeg: yawDeg, pitchDeg: pitchDeg };
 }
@@ -228,338 +270,227 @@ function extractBlendshapes(blendshapes) {
   return out;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// FROM gaze-detection.worker.ts
-// Iris landmark slot indices, iris ratio computation, 3-frame median smoothing,
-// gaze classification, computeStats, computeVerdict — all copied exactly.
-// ══════════════════════════════════════════════════════════════════════════════
+// ── Iris ratio + gaze (from worker) ──────────────────────────────────────────
 
-// Slot indices — must match worker comment:
-// leftOuter(33), leftInner(133), rightInner(362), rightOuter(263),
-// leftIris(468), rightIris(473), lUp(159), lDn(145), rUp(386), rDn(374)
-var LM_LEFT_OUTER  = 0;
-var LM_LEFT_INNER  = 1;
-var LM_RIGHT_INNER = 2;
-var LM_RIGHT_OUTER = 3;
-var LM_LEFT_IRIS   = 4;
-var LM_RIGHT_IRIS  = 5;
-var LM_L_UP        = 6;
-var LM_L_DN        = 7;
-var LM_R_UP        = 8;
-var LM_R_DN        = 9;
-
-// Pack FaceLandmarker landmarks into the Float32Array format the worker expects
 var IRIS_LM_INDICES = [33, 133, 362, 263, 468, 473, 159, 145, 386, 374];
+var LM_LEFT_OUTER=0,LM_LEFT_INNER=1,LM_RIGHT_INNER=2,LM_RIGHT_OUTER=3;
+var LM_LEFT_IRIS=4,LM_RIGHT_IRIS=5,LM_L_UP=6,LM_L_DN=7,LM_R_UP=8,LM_R_DN=9;
 
 function packLandmarks(lm) {
   var buf = new Float32Array(20);
   for (var s = 0; s < IRIS_LM_INDICES.length; s++) {
     var pt = lm[IRIS_LM_INDICES[s]];
-    buf[s * 2]     = pt ? pt.x : 0;
-    buf[s * 2 + 1] = pt ? pt.y : 0;
+    buf[s*2] = pt ? pt.x : 0; buf[s*2+1] = pt ? pt.y : 0;
   }
   return buf;
 }
 
-function getXY(buf, slot) { var o = slot * 2; return { x: buf[o], y: buf[o + 1] }; }
+function getXY(buf, slot) { var o = slot*2; return { x: buf[o], y: buf[o+1] }; }
 
 function computeHRatio(buf) {
   if (!buf || buf.length < 20) return null;
-  var lo = getXY(buf, LM_LEFT_OUTER).x,  li = getXY(buf, LM_LEFT_INNER).x;
-  var ro = getXY(buf, LM_RIGHT_INNER).x, ri = getXY(buf, LM_RIGHT_OUTER).x;
-  var lIris = getXY(buf, LM_LEFT_IRIS).x, rIris = getXY(buf, LM_RIGHT_IRIS).x;
-  var lw = li - lo, rw = ri - ro;
-  var lOk = lw >= 0.005, rOk = rw >= 0.005;
+  var lo=getXY(buf,LM_LEFT_OUTER).x, li=getXY(buf,LM_LEFT_INNER).x;
+  var ro=getXY(buf,LM_RIGHT_INNER).x, ri=getXY(buf,LM_RIGHT_OUTER).x;
+  var lIris=getXY(buf,LM_LEFT_IRIS).x, rIris=getXY(buf,LM_RIGHT_IRIS).x;
+  var lw=li-lo, rw=ri-ro, lOk=lw>=0.005, rOk=rw>=0.005;
   if (!lOk && !rOk) return null;
-  var lR = lOk ? Math.max(0, Math.min(1, (lIris - lo) / lw)) : null;
-  var rR = rOk ? Math.max(0, Math.min(1, (rIris - ro) / rw)) : null;
-  var ratio = (lR !== null && rR !== null) ? (lR + rR) / 2 : (lR !== null ? lR : rR);
-  return Math.round(ratio * 10000) / 10000;
+  var lR=lOk?Math.max(0,Math.min(1,(lIris-lo)/lw)):null;
+  var rR=rOk?Math.max(0,Math.min(1,(rIris-ro)/rw)):null;
+  var ratio=(lR!==null&&rR!==null)?(lR+rR)/2:(lR!==null?lR:rR);
+  return Math.round(ratio*10000)/10000;
 }
 
 function computeVRatio(buf) {
   if (!buf || buf.length < 20) return null;
-  var lUp = getXY(buf, LM_L_UP).y, lDn = getXY(buf, LM_L_DN).y, lI = getXY(buf, LM_LEFT_IRIS).y;
-  var rUp = getXY(buf, LM_R_UP).y, rDn = getXY(buf, LM_R_DN).y, rI = getXY(buf, LM_RIGHT_IRIS).y;
-  var lH = lDn - lUp, rH = rDn - rUp;
-  var lOk = lH >= 0.003, rOk = rH >= 0.003;
+  var lUp=getXY(buf,LM_L_UP).y, lDn=getXY(buf,LM_L_DN).y, lI=getXY(buf,LM_LEFT_IRIS).y;
+  var rUp=getXY(buf,LM_R_UP).y, rDn=getXY(buf,LM_R_DN).y, rI=getXY(buf,LM_RIGHT_IRIS).y;
+  var lH=lDn-lUp, rH=rDn-rUp, lOk=lH>=0.003, rOk=rH>=0.003;
   if (!lOk && !rOk) return null;
-  var lV = lOk ? Math.max(0, Math.min(1, (lI - lUp) / lH)) : null;
-  var rV = rOk ? Math.max(0, Math.min(1, (rI - rUp) / rH)) : null;
-  var ratio = (lV !== null && rV !== null) ? (lV + rV) / 2 : (lV !== null ? lV : rV);
-  return Math.round(ratio * 10000) / 10000;
+  var lV=lOk?Math.max(0,Math.min(1,(lI-lUp)/lH)):null;
+  var rV=rOk?Math.max(0,Math.min(1,(rI-rUp)/rH)):null;
+  var ratio=(lV!==null&&rV!==null)?(lV+rV)/2:(lV!==null?lV:rV);
+  return Math.round(ratio*10000)/10000;
 }
 
-// 3-frame median smoothing (from worker)
-var SMOOTH_WIN = 3;
-var hBuf = [], vBuf = [];
-
-function pushSmooth(buf, val) { buf.push(val); if (buf.length > SMOOTH_WIN) buf.shift(); }
-
-function medianOf(buf) {
-  var vals = buf.filter(function(x) { return x !== null; });
-  if (!vals.length) return null;
-  var sorted = vals.slice().sort(function(a, b) { return a - b; });
-  return sorted[Math.floor(sorted.length / 2)];
+var SMOOTH_WIN=3, hBuf=[], vBuf=[];
+function pushSmooth(buf,val){ buf.push(val); if(buf.length>SMOOTH_WIN) buf.shift(); }
+function medianOf(buf){
+  var vals=buf.filter(function(x){return x!==null;});
+  if(!vals.length) return null;
+  var s=vals.slice().sort(function(a,b){return a-b;});
+  return s[Math.floor(s.length/2)];
 }
 
-// Global thresholds from worker (DEFAULT_GLOBAL_THRESHOLDS)
-// upT and downSoftT loosened slightly so natural eye movements
-// reach the up/down bands (worker values: upT=0.32, downSoftT=0.62)
-var leftT     = 0.42;
-var rightT    = 0.58;
-var downT     = 0.72;
-var upT       = 0.42;
-var downSoftT = 0.55;
+var leftT=0.42,rightT=0.58,downT=0.72,upT=0.28,downSoftT=0.55;
 
-// classifyGaze — exact copy from worker
-function classifyGaze(h, v) {
-  if (h === null && v === null) return 'away';
-  var isLateral = h !== null && (h < leftT || h > rightT);
-  if (v !== null && v >= downT && !isLateral) return 'down';
-  if (h === null) return 'away';
-  var lateralDir = h < leftT ? 'left' : h > rightT ? 'right' : null;
-  var vBand = v === null ? 'mid' : v < upT ? 'up' : v >= downSoftT ? 'down' : 'mid';
-  if (lateralDir === null) {
-    if (vBand === 'up')   return 'center_up';
-    if (vBand === 'down') return 'down';
-    return 'center';
-  }
-  if (vBand === 'up')   return lateralDir + '_up';
-  if (vBand === 'down') return lateralDir + '_down';
+function classifyGaze(h,v) {
+  if(h===null&&v===null) return 'away';
+  var isLateral=h!==null&&(h<leftT||h>rightT);
+  if(v!==null&&v>=downT&&!isLateral) return 'down';
+  if(h===null) return 'away';
+  var lateralDir=h<leftT?'left':h>rightT?'right':null;
+  var vBand=v===null?'mid':v<upT?'up':v>=downSoftT?'down':'mid';
+  if(lateralDir===null){ if(vBand==='up') return 'center_up'; if(vBand==='down') return 'down'; return 'center'; }
+  if(vBand==='up')   return lateralDir+'_up';
+  if(vBand==='down') return lateralDir+'_down';
   return lateralDir;
 }
 
-// computeStats — exact copy from worker
-var LATERAL_STATES = new Set(['left','left_up','left_down','right','right_up','right_down']);
-var CENTER_STATES  = new Set(['center','center_up']);
-function isLateralGaze(g) { return LATERAL_STATES.has(g); }
-function isCenterLike(g)  { return CENTER_STATES.has(g); }
+// ── computeStats & computeVerdict (from worker, unchanged) ───────────────────
 
-function computeStats(frames, duration, irisVisible) {
-  var face = frames.filter(function(f) { return f.face_detected; });
-  if (!face.length) {
-    return { error: 'No face detected', gaze_pct: {}, lateral_per_min: 0,
-      look_read_per_min: 0, lateral_max_dur: 0, center_avg_dur: 0,
-      face_detection_rate: 0, iris_visible_frames: 0, gaze_visible_rate: 0 };
-  }
-  var rawCnt = {}, tf = face.length;
-  for (var fi = 0; fi < face.length; fi++) { var fg = face[fi].gaze; rawCnt[fg] = (rawCnt[fg]||0)+1; }
+var LATERAL_STATES=new Set(['left','left_up','left_down','right','right_up','right_down']);
+var CENTER_STATES=new Set(['center','center_up']);
+function isLateralGaze(g){return LATERAL_STATES.has(g);}
+function isCenterLike(g){return CENTER_STATES.has(g);}
 
-  var runs = [], rs = face[0].time, rg = face[0].gaze;
-  for (var i = 1; i < face.length; i++) {
-    if (face[i].gaze !== rg) {
-      runs.push({ gaze: rg, start: rs, end: face[i].time, dur: +((face[i].time-rs).toFixed(2)) });
-      rs = face[i].time; rg = face[i].gaze;
-    }
-  }
-  runs.push({ gaze: rg, start: rs, end: face[face.length-1].time, dur: +((face[face.length-1].time-rs).toFixed(2)) });
-
-  var latAllT = 0;
-  for (var j = 1; j < face.length; j++) {
-    var p = face[j-1].gaze, c = face[j].gaze;
-    if (c !== p && (isLateralGaze(c) || isLateralGaze(p))) latAllT++;
-  }
-
-  var lrE = [];
-  for (var k = 0; k < runs.length-1; k++) {
-    var g0 = runs[k].gaze;
-    if (!isCenterLike(runs[k+1].gaze)) continue;
-    if (isLateralGaze(g0)) {
-      var kind = g0.indexOf('_down')>=0 ? 'down_lateral' : g0.indexOf('_up')>=0 ? 'up_lateral' : 'lateral';
-      lrE.push({ time: +(runs[k].start.toFixed(1)), dir: g0, away_dur: runs[k].dur, kind: kind });
-    } else if (g0 === 'down') {
-      lrE.push({ time: +(runs[k].start.toFixed(1)), dir: 'down', away_dur: runs[k].dur, kind: 'down' });
-    }
-  }
-
-  var cRuns    = runs.filter(function(r){ return isCenterLike(r.gaze); });
-  var dRuns    = runs.filter(function(r){ return r.gaze==='down'; });
-  var lEyeRuns = runs.filter(function(r){ return r.gaze==='left'||r.gaze==='right'; });
-  var lUpRuns  = runs.filter(function(r){ return r.gaze==='left_up'||r.gaze==='right_up'; });
-  var lDnRuns  = runs.filter(function(r){ return r.gaze==='left_down'||r.gaze==='right_down'; });
-  var lAllRuns = runs.filter(function(r){ return isLateralGaze(r.gaze); });
-
-  var dm = Math.max(duration/60, 0.01);
-  function maxDur(arr) { if(!arr.length) return 0; var m=0; for(var x=0;x<arr.length;x++){if(arr[x].dur>m)m=arr[x].dur;} return +m.toFixed(2); }
-  function avgDur(arr) { if(!arr.length) return 0; var s=0; for(var x=0;x<arr.length;x++){s+=arr[x].dur;} return +(s/arr.length).toFixed(2); }
-
+function computeStats(frames,duration,irisVisible) {
+  var face=frames.filter(function(f){return f.face_detected;});
+  if(!face.length) return{error:'No face detected',gaze_pct:{},lateral_per_min:0,look_read_per_min:0,lateral_max_dur:0,center_avg_dur:0,face_detection_rate:0,iris_visible_frames:0,gaze_visible_rate:0};
+  var rawCnt={},tf=face.length;
+  for(var fi=0;fi<face.length;fi++){var fg=face[fi].gaze;rawCnt[fg]=(rawCnt[fg]||0)+1;}
+  var runs=[],rs=face[0].time,rg=face[0].gaze;
+  for(var i=1;i<face.length;i++){if(face[i].gaze!==rg){runs.push({gaze:rg,start:rs,end:face[i].time,dur:+((face[i].time-rs).toFixed(2))});rs=face[i].time;rg=face[i].gaze;}}
+  runs.push({gaze:rg,start:rs,end:face[face.length-1].time,dur:+((face[face.length-1].time-rs).toFixed(2))});
+  var latAllT=0;
+  for(var j=1;j<face.length;j++){var p=face[j-1].gaze,c=face[j].gaze;if(c!==p&&(isLateralGaze(c)||isLateralGaze(p)))latAllT++;}
+  var lrE=[];
+  for(var k=0;k<runs.length-1;k++){var g0=runs[k].gaze;if(!isCenterLike(runs[k+1].gaze))continue;if(isLateralGaze(g0)){var kind=g0.indexOf('_down')>=0?'down_lateral':g0.indexOf('_up')>=0?'up_lateral':'lateral';lrE.push({time:+(runs[k].start.toFixed(1)),dir:g0,away_dur:runs[k].dur,kind:kind});}else if(g0==='down'){lrE.push({time:+(runs[k].start.toFixed(1)),dir:'down',away_dur:runs[k].dur,kind:'down'});}}
+  var cRuns=runs.filter(function(r){return isCenterLike(r.gaze);}),dRuns=runs.filter(function(r){return r.gaze==='down';});
+  var lEyeRuns=runs.filter(function(r){return r.gaze==='left'||r.gaze==='right';});
+  var lUpRuns=runs.filter(function(r){return r.gaze==='left_up'||r.gaze==='right_up';});
+  var lDnRuns=runs.filter(function(r){return r.gaze==='left_down'||r.gaze==='right_down';});
+  var lAllRuns=runs.filter(function(r){return isLateralGaze(r.gaze);});
+  var dm=Math.max(duration/60,0.01);
+  function maxDur(arr){if(!arr.length)return 0;var m=0;for(var x=0;x<arr.length;x++){if(arr[x].dur>m)m=arr[x].dur;}return +m.toFixed(2);}
+  function avgDur(arr){if(!arr.length)return 0;var s=0;for(var x=0;x<arr.length;x++){s+=arr[x].dur;}return +(s/arr.length).toFixed(2);}
   var cntCenter=(rawCnt['center']||0)+(rawCnt['center_up']||0);
-  var cntLeft  =(rawCnt['left']||0)+(rawCnt['left_up']||0)+(rawCnt['left_down']||0);
-  var cntRight =(rawCnt['right']||0)+(rawCnt['right_up']||0)+(rawCnt['right_down']||0);
-  var cntDown  = rawCnt['down']||0, cntAway = rawCnt['away']||0;
-
-  return {
-    total_frames: frames.length, face_detected_frames: tf,
-    face_detection_rate: +(tf/frames.length).toFixed(3),
-    iris_visible_frames: irisVisible,
-    gaze_visible_rate: +(irisVisible/frames.length).toFixed(3),
-    gaze_pct: {
-      center: +(cntCenter/tf*100).toFixed(1), left: +(cntLeft/tf*100).toFixed(1),
-      right: +(cntRight/tf*100).toFixed(1),   down: +(cntDown/tf*100).toFixed(1),
-      away:  +(cntAway/tf*100).toFixed(1),
-      center_up:  +((rawCnt['center_up'] ||0)/tf*100).toFixed(1),
-      left_up:    +((rawCnt['left_up']   ||0)/tf*100).toFixed(1),
-      left_down:  +((rawCnt['left_down'] ||0)/tf*100).toFixed(1),
-      right_up:   +((rawCnt['right_up']  ||0)/tf*100).toFixed(1),
-      right_down: +((rawCnt['right_down']||0)/tf*100).toFixed(1),
-    },
-    lateral_per_min:      +(latAllT/dm).toFixed(2),
-    look_read_per_min:    +(lrE.length/dm).toFixed(2),
-    lateral_max_dur:      maxDur(lAllRuns), down_max_dur: maxDur(dRuns),
-    lateral_avg_dur:      avgDur(lAllRuns), center_avg_dur: avgDur(cRuns),
-    lateral_transitions:  latAllT, look_read_cycles: lrE.length,
-    runs: runs.slice(0,500), lrEvents: lrE.slice(0,100),
-    lateral_pct: {
-      eye_level: +(((rawCnt['left']||0)+(rawCnt['right']||0))/tf*100).toFixed(1),
-      upper:     +(((rawCnt['left_up']||0)+(rawCnt['right_up']||0))/tf*100).toFixed(1),
-      lower:     +(((rawCnt['left_down']||0)+(rawCnt['right_down']||0))/tf*100).toFixed(1),
-    },
-    lateral_eye_per_min:  +(lEyeRuns.length/dm).toFixed(2),
-    lateral_up_per_min:   +(lUpRuns.length/dm).toFixed(2),
-    lateral_down_per_min: +(lDnRuns.length/dm).toFixed(2),
-    lateral_eye_max_dur:  maxDur(lEyeRuns),
-    lateral_up_max_dur:   maxDur(lUpRuns),
-    lateral_down_max_dur: maxDur(lDnRuns),
-    look_read_down_per_min: +(lrE.filter(function(e){return e.kind==='down'||e.kind==='down_lateral';}).length/dm).toFixed(2),
-    look_read_up_per_min:   +(lrE.filter(function(e){return e.kind==='up_lateral';}).length/dm).toFixed(2),
-  };
+  var cntLeft=(rawCnt['left']||0)+(rawCnt['left_up']||0)+(rawCnt['left_down']||0);
+  var cntRight=(rawCnt['right']||0)+(rawCnt['right_up']||0)+(rawCnt['right_down']||0);
+  var cntDown=rawCnt['down']||0,cntAway=rawCnt['away']||0;
+  return{total_frames:frames.length,face_detected_frames:tf,face_detection_rate:+(tf/frames.length).toFixed(3),iris_visible_frames:irisVisible,gaze_visible_rate:+(irisVisible/frames.length).toFixed(3),gaze_pct:{center:+(cntCenter/tf*100).toFixed(1),left:+(cntLeft/tf*100).toFixed(1),right:+(cntRight/tf*100).toFixed(1),down:+(cntDown/tf*100).toFixed(1),away:+(cntAway/tf*100).toFixed(1),center_up:+((rawCnt['center_up']||0)/tf*100).toFixed(1),left_up:+((rawCnt['left_up']||0)/tf*100).toFixed(1),left_down:+((rawCnt['left_down']||0)/tf*100).toFixed(1),right_up:+((rawCnt['right_up']||0)/tf*100).toFixed(1),right_down:+((rawCnt['right_down']||0)/tf*100).toFixed(1)},lateral_per_min:+(latAllT/dm).toFixed(2),look_read_per_min:+(lrE.length/dm).toFixed(2),lateral_max_dur:maxDur(lAllRuns),down_max_dur:maxDur(dRuns),lateral_avg_dur:avgDur(lAllRuns),center_avg_dur:avgDur(cRuns),lateral_transitions:latAllT,look_read_cycles:lrE.length,runs:runs.slice(0,500),lrEvents:lrE.slice(0,100),lateral_pct:{eye_level:+(((rawCnt['left']||0)+(rawCnt['right']||0))/tf*100).toFixed(1),upper:+(((rawCnt['left_up']||0)+(rawCnt['right_up']||0))/tf*100).toFixed(1),lower:+(((rawCnt['left_down']||0)+(rawCnt['right_down']||0))/tf*100).toFixed(1)},lateral_eye_per_min:+(lEyeRuns.length/dm).toFixed(2),lateral_up_per_min:+(lUpRuns.length/dm).toFixed(2),lateral_down_per_min:+(lDnRuns.length/dm).toFixed(2),lateral_eye_max_dur:maxDur(lEyeRuns),lateral_up_max_dur:maxDur(lUpRuns),lateral_down_max_dur:maxDur(lDnRuns),look_read_down_per_min:+(lrE.filter(function(e){return e.kind==='down'||e.kind==='down_lateral';}).length/dm).toFixed(2),look_read_up_per_min:+(lrE.filter(function(e){return e.kind==='up_lateral';}).length/dm).toFixed(2)};
 }
 
-// computeVerdict — exact copy from worker
-var CFG_CHEAT = { lat:10.0,lrc:4.0,mld:3.0,away:25.0,cad:3.5,down:18.0,dnd:2.5,latLow:1.5,mldLow:2.0,latUp:15.0 };
-var activeWeights = { lat:3,lrc:3,mld:2,away:2,cad:1,down:2,dnd:1,latLow:4,mldLow:3,latUp:1 };
-var maxScore = 22;
+var CFG_CHEAT={lat:10.0,lrc:4.0,mld:3.0,away:25.0,cad:3.5,down:18.0,dnd:2.5,latLow:1.5,mldLow:2.0,latUp:15.0};
+var activeWeights={lat:3,lrc:3,mld:2,away:2,cad:1,down:2,dnd:1,latLow:4,mldLow:3,latUp:1};
+var maxScore=22;
 
 function computeVerdict(stats) {
-  if (stats.error) return { label:'UNKNOWN',confidence:0,color:'unknown',reason:stats.error,factors:[] };
-  var tLat=CFG_CHEAT.lat,tLrc=CFG_CHEAT.lrc,tMld=CFG_CHEAT.mld,tAway=CFG_CHEAT.away,
-      tCad=CFG_CHEAT.cad,tDown=CFG_CHEAT.down,tDnd=CFG_CHEAT.dnd,
-      tLatLow=CFG_CHEAT.latLow,tMldLow=CFG_CHEAT.mldLow,tLatUp=CFG_CHEAT.latUp;
-  var score=0, factors=[];
-  function addF(name,val,thresh,trig,w,sev) {
-    if(trig) score+=w;
-    factors.push({name:name,value:val,threshold:thresh+' (global)',triggered:trig,severity:trig?sev:'none'});
-  }
-  var aw=stats.gaze_pct.away||0, fdr=stats.face_detection_rate||0;
-  var usablePct=Math.max(0,100-aw), qualityOK=fdr>=0.75&&aw<=55;
-  var lat   =stats.lateral_eye_per_min !=null?stats.lateral_eye_per_min :(stats.lateral_per_min||0);
-  var mld   =stats.lateral_eye_max_dur !=null?stats.lateral_eye_max_dur :(stats.lateral_max_dur||0);
+  if(stats.error)return{label:'UNKNOWN',confidence:0,color:'unknown',reason:stats.error,factors:[]};
+  var tLat=CFG_CHEAT.lat,tLrc=CFG_CHEAT.lrc,tMld=CFG_CHEAT.mld,tAway=CFG_CHEAT.away,tCad=CFG_CHEAT.cad,tDown=CFG_CHEAT.down,tDnd=CFG_CHEAT.dnd,tLatLow=CFG_CHEAT.latLow,tMldLow=CFG_CHEAT.mldLow,tLatUp=CFG_CHEAT.latUp;
+  var score=0,factors=[];
+  function addF(name,val,thresh,trig,w,sev){if(trig)score+=w;factors.push({name:name,value:val,threshold:thresh+' (global)',triggered:trig,severity:trig?sev:'none'});}
+  var aw=stats.gaze_pct.away||0,fdr=stats.face_detection_rate||0;
+  var usablePct=Math.max(0,100-aw),qualityOK=fdr>=0.75&&aw<=55;
+  var lat=stats.lateral_eye_per_min!=null?stats.lateral_eye_per_min:(stats.lateral_per_min||0);
+  var mld=stats.lateral_eye_max_dur!=null?stats.lateral_eye_max_dur:(stats.lateral_max_dur||0);
   var latLow=stats.lateral_down_per_min!=null?stats.lateral_down_per_min:0;
   var mldLow=stats.lateral_down_max_dur!=null?stats.lateral_down_max_dur:0;
-  var latUp =stats.lateral_up_per_min  !=null?stats.lateral_up_per_min  :0;
-  var lrc=stats.look_read_per_min||0, cad=stats.center_avg_dur||0;
-  var dn=stats.gaze_pct.down||0, dnd=stats.down_max_dur||0;
-
-  var trigLat   =qualityOK&&lat>=tLat,    trigLrc=lrc>=tLrc;
-  var trigMld   =qualityOK&&mld>=tMld,    trigLatLow=qualityOK&&latLow>=tLatLow;
-  var trigMldLow=qualityOK&&mldLow>=tMldLow, trigLatUp=qualityOK&&latUp>=tLatUp;
+  var latUp=stats.lateral_up_per_min!=null?stats.lateral_up_per_min:0;
+  var lrc=stats.look_read_per_min||0,cad=stats.center_avg_dur||0,dn=stats.gaze_pct.down||0,dnd=stats.down_max_dur||0;
+  var trigLat=qualityOK&&lat>=tLat,trigLrc=lrc>=tLrc,trigMld=qualityOK&&mld>=tMld;
+  var trigLatLow=qualityOK&&latLow>=tLatLow,trigMldLow=qualityOK&&mldLow>=tMldLow,trigLatUp=qualityOK&&latUp>=tLatUp;
   var hasReadingEvidence=trigLrc||(qualityOK&&dn>=tDown)||trigLatLow||trigMldLow||(qualityOK&&mld>=Math.max(tMld,6)&&lat>=tLat*1.1);
-  var trigAway=aw>=tAway&&hasReadingEvidence&&aw<=85;
-  var trigCad=qualityOK&&cad>0&&cad<tCad, trigDown=qualityOK&&dn>=tDown, trigDnd=qualityOK&&dnd>=tDnd;
-
-  addF('Lateral Gaze Frequency',          lat   +'/min', '>'+tLat   +'/min', trigLat,   activeWeights.lat,   lat   >=tLat*1.4  ?'high':'medium');
-  addF('Look-Read Cycles',                lrc   +'/min', '>'+tLrc   +'/min', trigLrc,   activeWeights.lrc,   lrc   >=tLrc*1.4  ?'high':'medium');
-  addF('Sustained Lateral Gaze',          mld   +'s',    '>'+tMld   +'s',    trigMld,   activeWeights.mld,   mld   >=8         ?'high':'medium');
-  addF('Away Gaze / Head Turning',        aw    +'%',    '>'+tAway  +'%',    trigAway,  activeWeights.away,  aw    >=tAway*1.3 ?'high':'medium');
-  addF('Short Attention Span',            cad   +'s avg','<'+tCad   +'s avg',trigCad,   activeWeights.cad,   'medium');
-  addF('Down Gaze (Reading Below)',       dn    +'%',    '>'+tDown  +'%',    trigDown,  activeWeights.down,  dn    >=tDown*1.3 ?'high':'medium');
-  addF('Sustained Down Gaze',             dnd   +'s',    '>'+tDnd   +'s',    trigDnd,   activeWeights.dnd,   dnd   >=6         ?'high':'medium');
-  addF('Lower Lateral Gaze (Phone/Notes)',latLow+'/min', '>'+tLatLow+'/min', trigLatLow,activeWeights.latLow,latLow>=tLatLow*2 ?'high':'medium');
-  addF('Sustained Lower Lateral Gaze',   mldLow+'s',    '>'+tMldLow+'s',    trigMldLow,activeWeights.mldLow,mldLow>=4         ?'high':'medium');
-  addF('Upper Lateral Gaze (Thinking)',   latUp +'/min', '>'+tLatUp +'/min', trigLatUp, activeWeights.latUp, 'low');
-
+  var trigAway=aw>=tAway&&hasReadingEvidence&&aw<=85,trigCad=qualityOK&&cad>0&&cad<tCad,trigDown=qualityOK&&dn>=tDown,trigDnd=qualityOK&&dnd>=tDnd;
+  addF('Lateral Gaze Frequency',lat+'/min','>'+tLat+'/min',trigLat,activeWeights.lat,lat>=tLat*1.4?'high':'medium');
+  addF('Look-Read Cycles',lrc+'/min','>'+tLrc+'/min',trigLrc,activeWeights.lrc,lrc>=tLrc*1.4?'high':'medium');
+  addF('Sustained Lateral Gaze',mld+'s','>'+tMld+'s',trigMld,activeWeights.mld,mld>=8?'high':'medium');
+  addF('Away Gaze / Head Turning',aw+'%','>'+tAway+'%',trigAway,activeWeights.away,aw>=tAway*1.3?'high':'medium');
+  addF('Short Attention Span',cad+'s avg','<'+tCad+'s avg',trigCad,activeWeights.cad,'medium');
+  addF('Down Gaze (Reading Below)',dn+'%','>'+tDown+'%',trigDown,activeWeights.down,dn>=tDown*1.3?'high':'medium');
+  addF('Sustained Down Gaze',dnd+'s','>'+tDnd+'s',trigDnd,activeWeights.dnd,dnd>=6?'high':'medium');
+  addF('Lower Lateral Gaze (Phone/Notes)',latLow+'/min','>'+tLatLow+'/min',trigLatLow,activeWeights.latLow,latLow>=tLatLow*2?'high':'medium');
+  addF('Sustained Lower Lateral Gaze',mldLow+'s','>'+tMldLow+'s',trigMldLow,activeWeights.mldLow,mldLow>=4?'high':'medium');
+  addF('Upper Lateral Gaze (Thinking)',latUp+'/min','>'+tLatUp+'/min',trigLatUp,activeWeights.latUp,'low');
   var qualityPenalty=qualityOK?0:Math.min(22,Math.round(Math.max(0,aw-55)*0.25+(0.75-Math.min(0.75,fdr))*30));
-  var cRaw=maxScore>0?(score/maxScore)*100:0;
-  var nTrig=factors.filter(function(f){return f.triggered;}).length;
+  var cRaw=maxScore>0?(score/maxScore)*100:0,nTrig=factors.filter(function(f){return f.triggered;}).length;
   var primaryEvidence=trigLrc||trigDown||trigDnd||trigLatLow||trigMldLow||(qualityOK&&mld>=Math.max(tMld,6)&&lat>=tLat*1.2);
-
   var label,color,confidence;
-  if(!qualityOK&&!primaryEvidence)         { label='CAN NOT EVALUATE'; color='unknown'; confidence=0; }
-  else if(score>=7&&primaryEvidence)        { label='CHEATING DETECTED'; color='cheat';
-    confidence=Math.min(98,Math.max(55,Math.round(60+cRaw*0.4-qualityPenalty))); }
-  else if(score>=4||(score>=7&&!primaryEvidence)){ label='SUSPICIOUS BEHAVIOR'; color='suspect';
-    confidence=Math.max(30,Math.round(40+cRaw*0.35-qualityPenalty)); }
-  else { label='NO CHEATING DETECTED'; color='ok';
-    confidence=Math.min(97,Math.max(55,Math.round(68+(1-cRaw/100)*29-qualityPenalty))); }
-
+  if(!qualityOK&&!primaryEvidence){label='CAN NOT EVALUATE';color='unknown';confidence=0;}
+  else if(score>=7&&primaryEvidence){label='CHEATING DETECTED';color='cheat';confidence=Math.min(98,Math.max(55,Math.round(60+cRaw*0.4-qualityPenalty)));}
+  else if(score>=4||(score>=7&&!primaryEvidence)){label='SUSPICIOUS BEHAVIOR';color='suspect';confidence=Math.max(30,Math.round(40+cRaw*0.35-qualityPenalty));}
+  else{label='NO CHEATING DETECTED';color='ok';confidence=Math.min(97,Math.max(55,Math.round(68+(1-cRaw/100)*29-qualityPenalty)));}
   var nonCheatConf=confidence;
-  var cheatConf=(label==='NO CHEATING DETECTED'||label==='CAN NOT EVALUATE')
-    ?Math.max(0,Math.min(100,100-nonCheatConf)):nonCheatConf;
+  var cheatConf=(label==='NO CHEATING DETECTED'||label==='CAN NOT EVALUATE')?Math.max(0,Math.min(100,100-nonCheatConf)):nonCheatConf;
   confidence=cheatConf;
-
   var tNames=factors.filter(function(f){return f.triggered;}).map(function(f){return f.name;});
-  return {
-    label:label, color:color, confidence:confidence,
-    score:score, max_score:maxScore, triggered_count:nTrig,
-    reason: nTrig+'/'+factors.length+' indicators triggered'+
-      (tNames.length?': '+tNames.join(', '):'  — none')+
-      (qualityOK?'':' · Tracking quality low (face '+Math.round(fdr*100)+'%, away '+aw+'%, usable '+usablePct+'%)'),
-    factors:factors,
-  };
+  return{label:label,color:color,confidence:confidence,score:score,max_score:maxScore,triggered_count:nTrig,reason:nTrig+'/'+factors.length+' indicators triggered'+(tNames.length?': '+tNames.join(', '):'  — none')+(qualityOK?'':' · Tracking quality low (face '+Math.round(fdr*100)+'%, away '+aw+'%, usable '+usablePct+'%)'),factors:factors};
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Show result after Stop
-// ══════════════════════════════════════════════════════════════════════════════
+// ── showResult ────────────────────────────────────────────────────────────────
 
 function showResult(recordedFrames, durationSec, irisVisible) {
-  var stats   = computeStats(recordedFrames, durationSec, irisVisible);
-  var verdict = computeVerdict(stats);
-
-  var vbox = document.getElementById('verdictBox');
-  vbox.textContent = verdict.label + '  (' + verdict.confidence + '% confidence)';
-  vbox.className   = 'verdict-' + verdict.color;
-
+  var stats=computeStats(recordedFrames,durationSec,irisVisible);
+  var verdict=computeVerdict(stats);
+  var vbox=document.getElementById('verdictBox');
+  vbox.textContent=verdict.label+'  ('+verdict.confidence+'% confidence)';
+  vbox.className='verdict-'+verdict.color;
   function row(lbl,val){return '<div class="stat-row"><span class="stat-label">'+lbl+'</span><span class="stat-val">'+val+'</span></div>';}
   var sh='';
-  sh+=row('Duration',            durationSec.toFixed(1)+'s');
-  sh+=row('Total frames',        stats.total_frames);
-  sh+=row('Face detected',       stats.face_detected_frames+' ('+Math.round(stats.face_detection_rate*100)+'%)');
-  sh+=row('Iris visible frames', stats.iris_visible_frames);
-  sh+=row('Lateral gaze /min',   stats.lateral_eye_per_min!=null?stats.lateral_eye_per_min:stats.lateral_per_min);
+  sh+=row('Duration',durationSec.toFixed(1)+'s');
+  sh+=row('Total frames',stats.total_frames);
+  sh+=row('Face detected',stats.face_detected_frames+' ('+Math.round(stats.face_detection_rate*100)+'%)');
+  sh+=row('Iris visible frames',stats.iris_visible_frames);
+  sh+=row('Lateral gaze /min',stats.lateral_eye_per_min!=null?stats.lateral_eye_per_min:stats.lateral_per_min);
   sh+=row('Look-read cycles/min',stats.look_read_per_min);
-  sh+=row('Max lateral run',     (stats.lateral_eye_max_dur!=null?stats.lateral_eye_max_dur:stats.lateral_max_dur)+'s');
-  sh+=row('Max down run',        stats.down_max_dur+'s');
-  sh+=row('Center avg dur',      stats.center_avg_dur+'s');
-  sh+=row('Score',               verdict.score+' / '+verdict.max_score);
+  sh+=row('Max lateral run',(stats.lateral_eye_max_dur!=null?stats.lateral_eye_max_dur:stats.lateral_max_dur)+'s');
+  sh+=row('Max down run',stats.down_max_dur+'s');
+  sh+=row('Center avg dur',stats.center_avg_dur+'s');
+  sh+=row('Score',verdict.score+' / '+verdict.max_score);
   document.getElementById('statsTable').innerHTML=sh;
-
-  var gp=stats.gaze_pct||{}, dh='';
-  var pairs=[
-    ['Center',       (+(gp.center||0)+ +(gp.center_up||0)).toFixed(1)],
-    ['↑ Center Up',  gp.center_up  ||0], ['← Left',       gp.left       ||0],
-    ['↖ Left Up',    gp.left_up    ||0], ['↙ Left Down',  gp.left_down  ||0],
-    ['→ Right',      gp.right      ||0], ['↗ Right Up',   gp.right_up   ||0],
-    ['↘ Right Down', gp.right_down ||0], ['↓ Down',       gp.down       ||0],
-    ['✕ Away',       gp.away       ||0],
-  ];
+  var gp=stats.gaze_pct||{},dh='';
+  var pairs=[['Center',(+(gp.center||0)+ +(gp.center_up||0)).toFixed(1)],['↑ Center Up',gp.center_up||0],['← Left',gp.left||0],['↖ Left Up',gp.left_up||0],['↙ Left Down',gp.left_down||0],['→ Right',gp.right||0],['↗ Right Up',gp.right_up||0],['↘ Right Down',gp.right_down||0],['↓ Down',gp.down||0],['✕ Away',gp.away||0]];
   for(var gi=0;gi<pairs.length;gi++) dh+=row(pairs[gi][0],pairs[gi][1]+'%');
   document.getElementById('gazeDistTable').innerHTML=dh;
-
   var fList=document.getElementById('factorsList'); fList.innerHTML='';
   for(var fi=0;fi<verdict.factors.length;fi++){
-    var f=verdict.factors[fi], li=document.createElement('li');
-    li.innerHTML='<span class="factor-name">'+f.name+'</span>'+
-      '<span class="factor-val">'+f.value+' (thresh '+f.threshold+')</span>'+
-      (f.triggered?'<span class="factor-trig">▲ TRIGGERED</span>':'<span class="factor-ok">✓ ok</span>');
+    var f=verdict.factors[fi],li=document.createElement('li');
+    li.innerHTML='<span class="factor-name">'+f.name+'</span><span class="factor-val">'+f.value+' (thresh '+f.threshold+')</span>'+(f.triggered?'<span class="factor-trig">▲ TRIGGERED</span>':'<span class="factor-ok">✓ ok</span>');
     fList.appendChild(li);
   }
   document.getElementById('reasonText').textContent=verdict.reason;
   document.getElementById('result').style.display='block';
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Detection loop
-// ══════════════════════════════════════════════════════════════════════════════
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-var vid        = document.getElementById('vid');
-var overlay    = document.getElementById('overlay');
-var ctx        = overlay.getContext('2d');
-var btnStart   = document.getElementById('btnStart');
-var btnStop    = document.getElementById('btnStop');
+function formatTime(sec) {
+  if (!isFinite(sec) || isNaN(sec)) return '0:00';
+  var m=Math.floor(sec/60), s=Math.floor(sec%60);
+  return m+':'+(s<10?'0':'')+s;
+}
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+
+var vid       = document.getElementById('vid');
+var overlay   = document.getElementById('overlay');
+var ctx       = overlay.getContext('2d');
 var statusLine = document.getElementById('statusLine');
 
+var btnModeCamera   = document.getElementById('btnModeCamera');
+var btnModeVideo    = document.getElementById('btnModeVideo');
+var cameraControls  = document.getElementById('cameraControls');
+var videoUploadArea = document.getElementById('videoUploadArea');
+
+var btnStart      = document.getElementById('btnStart');
+var btnStop       = document.getElementById('btnStop');
+var btnChooseFile  = document.getElementById('btnChooseFile');
+var fileInput      = document.getElementById('fileInput');
+var fileNameDisplay = document.getElementById('fileNameDisplay');
+var btnVideoStart  = document.getElementById('btnVideoStart');
+var btnVideoStop   = document.getElementById('btnVideoStop');
+
+var videoPlayerControls = document.getElementById('videoPlayerControls');
+var btnPlayPause   = document.getElementById('btnPlayPause');
+var timeDisplay    = document.getElementById('timeDisplay');
+var seekBar        = document.getElementById('seekBar');
+var durationDisplay = document.getElementById('durationDisplay');
+var speedSelect    = document.getElementById('speedSelect');
+var volumeBar      = document.getElementById('volumeBar');
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+var isVideoMode    = false;
+var videoFileUrl   = null;
 var landmarker     = null;
 var stream         = null;
 var intervalId     = null;
@@ -571,226 +502,285 @@ var prevGaze       = null;
 var prevLogGaze    = null;
 var recordedFrames = [];
 var sessionStartMs = 0;
-
-// sessionStorage checkpoint — same key and structure as service
-var CHECKPOINT_KEY     = 'rdga_checkpoint';
+var CHECKPOINT_KEY = 'rdga_checkpoint';
 var checkpointInterval = null;
+
+// ── Checkpoint ────────────────────────────────────────────────────────────────
 
 function writeCheckpoint() {
   if (!recordedFrames.length) return;
-  try {
-    sessionStorage.setItem(CHECKPOINT_KEY, JSON.stringify({
-      sessionStartTime:   sessionStartMs,
-      cumulativeActiveMs: Date.now() - sessionStartMs,
-      samples:            recordedFrames,
-    }));
-  } catch(e) { console.warn('checkpoint write failed', e); }
+  try { sessionStorage.setItem(CHECKPOINT_KEY, JSON.stringify({ sessionStartTime: sessionStartMs, cumulativeActiveMs: Date.now()-sessionStartMs, samples: recordedFrames })); } catch(e) {}
 }
+function clearCheckpoint() { try { sessionStorage.removeItem(CHECKPOINT_KEY); } catch(e) {} }
 
-function clearCheckpoint() {
-  try { sessionStorage.removeItem(CHECKPOINT_KEY); } catch(e) {}
-}
+// ── Gaze highlight ────────────────────────────────────────────────────────────
 
 function highlightGaze(gaze) {
   if (gaze === prevGaze) return;
   prevGaze = gaze;
   var cells = document.querySelectorAll('.gcell');
-  for (var i = 0; i < cells.length; i++) { cells[i].classList.remove('active'); }
+  for (var i = 0; i < cells.length; i++) cells[i].classList.remove('active');
   var awayEl = document.getElementById('awayLabel');
-  if (gaze === 'away' || gaze === 'no_face') {
-    awayEl.textContent = 'NO FACE'; awayEl.style.color = '#c00'; return;
-  }
-  awayEl.textContent = '—'; awayEl.style.color = '#888';
-  var el = document.getElementById('cell-' + gaze);
+  if (gaze === 'away' || gaze === 'no_face') { awayEl.textContent='NO FACE'; awayEl.style.color='#c00'; return; }
+  awayEl.textContent='—'; awayEl.style.color='#888';
+  var el = document.getElementById('cell-'+gaze);
   if (el) el.classList.add('active');
 }
+
+// ── captureAndProcess ─────────────────────────────────────────────────────────
 
 function captureAndProcess() {
   if (!vid || vid.readyState < 2) return;
   var vw = vid.videoWidth, vh = vid.videoHeight;
   if (!vw || !vh) return;
+  if (isVideoMode && (vid.paused || vid.ended)) return;
 
-  // 320px capture — same as service
-  var scale = 320 / vw, dw = 320, dh = Math.round(vh * scale);
-  if (capCanvas.width !== dw)  capCanvas.width  = dw;
-  if (capCanvas.height !== dh) capCanvas.height = dh;
-  capCtx.drawImage(vid, 0, 0, dw, dh);
+  var scale=320/vw, dw=320, dh=Math.round(vh*scale);
+  if (capCanvas.width!==dw)  capCanvas.width=dw;
+  if (capCanvas.height!==dh) capCanvas.height=dh;
+  capCtx.drawImage(vid,0,0,dw,dh);
 
-  var tSec = (Date.now() - sessionStartMs) / 1000;
+  var tSec = isVideoMode ? vid.currentTime : (Date.now()-sessionStartMs)/1000;
 
   createImageBitmap(capCanvas).then(function(bitmap) {
     var result;
-    try { result = landmarker.detect(bitmap); }
-    catch(e) { result = { faceLandmarks: [], faceBlendshapes: [] }; }
+    try { result=landmarker.detect(bitmap); } catch(e) { result={faceLandmarks:[],faceBlendshapes:[]}; }
     bitmap.close();
-
     frameCount++;
 
     if (!result.faceLandmarks || !result.faceLandmarks.length) {
-      // No face — worker stores face_detected:false, gaze:'no_face'
-      recordedFrames.push({ time: +tSec.toFixed(2), face_detected: false, gaze: 'no_face' });
-      console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: false, gaze: 'away' });
+      recordedFrames.push({time:+tSec.toFixed(2),face_detected:false,gaze:'no_face'});
+      console.log('frame detected:',{time:+tSec.toFixed(2),face_detected:false,gaze:'away'});
       highlightGaze('no_face');
       return;
     }
 
-    var lm = result.faceLandmarks[0];
+    var lm=result.faceLandmarks[0];
+    var buf=packLandmarks(lm);
+    var rawH=computeHRatio(buf), rawV=computeVRatio(buf);
+    pushSmooth(hBuf,rawH); pushSmooth(vBuf,rawV);
+    var hRatio=medianOf(hBuf), vRatio=medianOf(vBuf);
 
-    // ── Worker path: pack iris landmarks → compute H/V ratios → 3-frame smooth → classify ──
-    var buf   = packLandmarks(lm);
-    var rawH  = computeHRatio(buf);
-    var rawV  = computeVRatio(buf);
-    pushSmooth(hBuf, rawH);
-    pushSmooth(vBuf, rawV);
-    var hRatio = medianOf(hBuf);
-    var vRatio = medianOf(vBuf);
-    // Invert H ratio to match mirrored video — landmark coords are unmirrored,
-    // so iris moving right in frame = person looking left without inversion.
-    var mirroredH = hRatio !== null ? 1 - hRatio : null;
-    var gaze   = classifyGaze(mirroredH, vRatio);
+    // Webcam: mirror H (camera flips left/right). Video upload: no mirroring.
+    var effectiveH = (!isVideoMode && hRatio!==null) ? 1-hRatio : hRatio;
+    var gaze=classifyGaze(effectiveH,vRatio);
 
-    // irisQuality: worker defaults to 1 when not provided; we track visible frames
-    // when hRatio/vRatio are not null (iris geometry is valid)
-    if (hRatio !== null || vRatio !== null) irisVisible++;
+    if (hRatio!==null||vRatio!==null) irisVisible++;
+    recordedFrames.push({time:+tSec.toFixed(2),face_detected:true,gaze:gaze,h_ratio:hRatio,v_ratio:vRatio});
 
-    // Record frame — exact shape worker's frames array uses
-    recordedFrames.push({ time: +tSec.toFixed(2), face_detected: true, gaze: gaze, h_ratio: hRatio, v_ratio: vRatio });
-
-    // ── Service path: extract yaw/pitch/blendshapes for raw display ──
-    var pose   = estimateYawPitchNose(lm);
-
-    var logGaze = (pose.pitchDeg < -5) ? 'head_up' : gaze;
-    if (logGaze !== prevLogGaze) {
-      console.log('frame detected:', { time: +tSec.toFixed(2), face_detected: true, gaze: logGaze });
-      prevLogGaze = logGaze;
-    }
-    var jaw    = jawOpenScore(result.faceBlendshapes);
-    var blends = extractBlendshapes(result.faceBlendshapes);
+    var pose=estimateYawPitchNose(lm);
+    var logGaze=(pose.pitchDeg<-5)?'head_up':gaze;
+    if (logGaze!==prevLogGaze) { console.log('frame detected:',{time:+tSec.toFixed(2),face_detected:true,gaze:logGaze}); prevLogGaze=logGaze; }
+    var jaw=jawOpenScore(result.faceBlendshapes);
+    var blends=extractBlendshapes(result.faceBlendshapes);
 
     highlightGaze(gaze);
 
-    // Head pose indicators — using yaw/pitch from service's estimateYawPitchNose
-    var headCenter = Math.abs(pose.yawDeg) <= 10 && Math.abs(pose.pitchDeg) <= 10;
-    var headUp     = pose.pitchDeg < -5;
+    var headCenter=Math.abs(pose.yawDeg)<=10&&Math.abs(pose.pitchDeg)<=10;
+    var headUp=pose.pitchDeg<-5;
+    var hcBox=document.getElementById('headCenterBox'), huBox=document.getElementById('headUpBox');
+    if(headCenter){hcBox.style.background='#22aa44';hcBox.style.borderColor='#006622';hcBox.style.color='#fff';}
+    else{hcBox.style.background='#eee';hcBox.style.borderColor='#bbb';hcBox.style.color='#888';}
+    if(headUp){huBox.style.background='#1976d2';huBox.style.borderColor='#0d47a1';huBox.style.color='#fff';}
+    else{huBox.style.background='#eee';huBox.style.borderColor='#bbb';huBox.style.color='#888';}
 
-    var hcBox = document.getElementById('headCenterBox');
-    var huBox = document.getElementById('headUpBox');
-    if (headCenter) {
-      hcBox.style.background   = '#22aa44';
-      hcBox.style.borderColor  = '#006622';
-      hcBox.style.color        = '#fff';
-    } else {
-      hcBox.style.background   = '#eee';
-      hcBox.style.borderColor  = '#bbb';
-      hcBox.style.color        = '#888';
-    }
-    if (headUp) {
-      huBox.style.background   = '#1976d2';
-      huBox.style.borderColor  = '#0d47a1';
-      huBox.style.color        = '#fff';
-    } else {
-      huBox.style.background   = '#eee';
-      huBox.style.borderColor  = '#bbb';
-      huBox.style.color        = '#888';
-    }
+    document.getElementById('rv-gaze').textContent=gaze.toUpperCase().replace(/_/g,' ');
+    document.getElementById('rv-h').textContent=hRatio!==null?hRatio.toFixed(4):'—';
+    document.getElementById('rv-v').textContent=vRatio!==null?vRatio.toFixed(4):'—';
+    document.getElementById('rv-yaw').textContent=pose.yawDeg.toFixed(2)+'°';
+    document.getElementById('rv-pitch').textContent=pose.pitchDeg.toFixed(2)+'°';
+    document.getElementById('rv-jaw').textContent=jaw.toFixed(3);
+    document.getElementById('rv-lookDown').textContent=blends.eyeLookDown.toFixed(3);
+    document.getElementById('rv-lookUp').textContent=blends.eyeLookUp.toFixed(3);
+    document.getElementById('rv-lookOut').textContent=blends.eyeLookOut.toFixed(3);
+    document.getElementById('rv-lookIn').textContent=blends.eyeLookIn.toFixed(3);
+    document.getElementById('rv-blink').textContent=blends.eyeBlink.toFixed(3);
+    document.getElementById('rv-frames').textContent=frameCount;
 
-    // Update raw values panel
-    document.getElementById('rv-gaze').textContent     = gaze.toUpperCase().replace(/_/g,' ');
-    document.getElementById('rv-h').textContent        = hRatio !== null ? hRatio.toFixed(4) : '—';
-    document.getElementById('rv-v').textContent        = vRatio !== null ? vRatio.toFixed(4) : '—';
-    document.getElementById('rv-yaw').textContent      = pose.yawDeg.toFixed(2)+'°';
-    document.getElementById('rv-pitch').textContent    = pose.pitchDeg.toFixed(2)+'°';
-    document.getElementById('rv-jaw').textContent      = jaw.toFixed(3);
-    document.getElementById('rv-lookDown').textContent = blends.eyeLookDown.toFixed(3);
-    document.getElementById('rv-lookUp').textContent   = blends.eyeLookUp.toFixed(3);
-    document.getElementById('rv-lookOut').textContent  = blends.eyeLookOut.toFixed(3);
-    document.getElementById('rv-lookIn').textContent   = blends.eyeLookIn.toFixed(3);
-    document.getElementById('rv-blink').textContent    = blends.eyeBlink.toFixed(3);
-    document.getElementById('rv-frames').textContent   = frameCount;
-
-    // Landmark dots on overlay
-    overlay.width  = vid.offsetWidth  || 480;
-    overlay.height = vid.offsetHeight || 360;
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    var scaleX = overlay.width / vw, scaleY = overlay.height / vh;
-    ctx.fillStyle = '#00ff88';
-    var keys = [1, 33, 263, 152, 10, 468, 473, 159, 145, 386, 374];
-    for (var i = 0; i < keys.length; i++) {
-      var pt = lm[keys[i]];
-      if (!pt) continue;
+    overlay.width=vid.offsetWidth||640; overlay.height=vid.offsetHeight||480;
+    ctx.clearRect(0,0,overlay.width,overlay.height);
+    var scaleX=overlay.width/vw, scaleY=overlay.height/vh;
+    ctx.fillStyle='#00ff88';
+    var keys=[1,33,263,152,10,468,473,159,145,386,374];
+    for (var i=0;i<keys.length;i++) {
+      var pt=lm[keys[i]]; if(!pt) continue;
       ctx.beginPath();
-      ctx.arc((1-pt.x)*vw*scaleX, pt.y*vh*scaleY, 3, 0, Math.PI*2);
+      var dotX = isVideoMode ? pt.x*vw*scaleX : (1-pt.x)*vw*scaleX;
+      ctx.arc(dotX, pt.y*vh*scaleY, 3, 0, Math.PI*2);
       ctx.fill();
     }
-
-  }).catch(function() {});
+  }).catch(function(){});
 }
 
-btnStart.addEventListener('click', async function() {
-  btnStart.disabled = true;
-  statusLine.textContent = 'Requesting camera...';
+// ── Shared stop ───────────────────────────────────────────────────────────────
 
+function doStop() {
+  clearInterval(intervalId); clearInterval(checkpointInterval);
+  intervalId=null; checkpointInterval=null;
+
+  var durationSec;
+  if (isVideoMode) {
+    durationSec = vid.ended ? (vid.duration||0) : (vid.currentTime||0);
+    vid.pause();
+    btnPlayPause.textContent='&#9654;';
+    btnVideoStart.disabled=false; btnVideoStop.disabled=true;
+  } else {
+    durationSec=(Date.now()-sessionStartMs)/1000;
+    if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+    vid.srcObject=null;
+    ctx.clearRect(0,0,overlay.width,overlay.height);
+    btnStop.disabled=true; btnStart.disabled=false;
+  }
+
+  statusLine.textContent='Stopped. Analyzing '+recordedFrames.length+' frames…';
+  clearCheckpoint();
+  showResult(recordedFrames,durationSec,irisVisible);
+  statusLine.textContent='Done. See analysis below.';
+}
+
+// ── Face model loader ─────────────────────────────────────────────────────────
+
+async function loadLandmarker() {
+  if (landmarker) return true;
+  statusLine.textContent='Loading face model (first time ~10s)...';
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-  } catch(e) {
-    statusLine.textContent = 'Camera error: ' + e.message;
-    btnStart.disabled = false; return;
+    var vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    landmarker=await FaceLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'CPU'},
+      runningMode:'IMAGE',numFaces:1,outputFaceBlendshapes:true,
+      minFaceDetectionConfidence:0.4,minFacePresenceConfidence:0.4,
+    });
+    return true;
+  } catch(e) { statusLine.textContent='Model load failed: '+e.message; return false; }
+}
+
+// ── Mode switching ────────────────────────────────────────────────────────────
+
+function switchMode(toVideo) {
+  if (intervalId) doStop();
+  isVideoMode=toVideo;
+  if (toVideo) {
+    btnModeCamera.classList.remove('active'); btnModeVideo.classList.add('active');
+    cameraControls.style.display='none'; videoUploadArea.style.display='flex';
+    vid.srcObject=null; vid.removeAttribute('src');
+    videoPlayerControls.classList.remove('visible');
+    statusLine.textContent='Choose a video file to analyze.';
+  } else {
+    btnModeCamera.classList.add('active'); btnModeVideo.classList.remove('active');
+    cameraControls.style.display='flex'; videoUploadArea.style.display='none';
+    videoPlayerControls.classList.remove('visible');
+    if(videoFileUrl){URL.revokeObjectURL(videoFileUrl);videoFileUrl=null;}
+    vid.removeAttribute('src');
+    statusLine.textContent='Press Start to begin.';
   }
+}
 
-  vid.srcObject = stream;
-  await new Promise(function(res) { vid.onloadeddata = res; });
+btnModeCamera.addEventListener('click', function(){ switchMode(false); });
+btnModeVideo.addEventListener('click',  function(){ switchMode(true); });
 
-  if (!landmarker) {
-    statusLine.textContent = 'Loading face model (first time ~10s)...';
-    try {
-      var vision = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-      );
-      landmarker = await FaceLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-          delegate: 'CPU'
-        },
-        runningMode: 'IMAGE', numFaces: 1, outputFaceBlendshapes: true,
-        minFaceDetectionConfidence: 0.4,  // same as service
-        minFacePresenceConfidence:  0.4,  // same as service
-      });
-    } catch(e) {
-      statusLine.textContent = 'Model load failed: ' + e.message;
-      btnStart.disabled = false; return;
-    }
-  }
+// ── Webcam mode ───────────────────────────────────────────────────────────────
 
-  frameCount = 0; irisVisible = 0; prevGaze = null; prevLogGaze = null;
-  recordedFrames = []; sessionStartMs = Date.now();
-  hBuf = []; vBuf = [];  // reset smoothing buffers
-  document.getElementById('result').style.display = 'none';
-  statusLine.textContent = 'Running at 3 FPS…';
-  btnStop.disabled = false;
+btnStart.addEventListener('click', async function() {
+  btnStart.disabled=true;
+  statusLine.textContent='Requesting camera...';
+  try { stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}); }
+  catch(e) { statusLine.textContent='Camera error: '+e.message; btnStart.disabled=false; return; }
 
-  intervalId = setInterval(captureAndProcess, 333);  // 3 FPS — same as service
-  checkpointInterval = setInterval(writeCheckpoint, 5000);  // 5s checkpoint — same as service
+  vid.muted=true; vid.srcObject=stream;
+  await new Promise(function(res){ vid.onloadeddata=res; });
+  vid.play().catch(function(){});
+
+  if (!await loadLandmarker()) { btnStart.disabled=false; return; }
+
+  frameCount=0; irisVisible=0; prevGaze=null; prevLogGaze=null;
+  recordedFrames=[]; sessionStartMs=Date.now(); hBuf=[]; vBuf=[];
+  document.getElementById('result').style.display='none';
+  statusLine.textContent='Running at 3 FPS…';
+  btnStop.disabled=false;
+  intervalId=setInterval(captureAndProcess,333);
+  checkpointInterval=setInterval(writeCheckpoint,5000);
 });
 
-btnStop.addEventListener('click', function() {
-  clearInterval(intervalId);
-  clearInterval(checkpointInterval);
-  intervalId = null; checkpointInterval = null;
+btnStop.addEventListener('click', function(){ doStop(); });
 
-  var durationSec = (Date.now() - sessionStartMs) / 1000;
+// ── Video upload mode ─────────────────────────────────────────────────────────
 
-  console.log('recordedFrames:', recordedFrames);
+btnChooseFile.addEventListener('click', function(){ fileInput.click(); });
 
-  if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
-  vid.srcObject = null;
-  ctx.clearRect(0, 0, overlay.width, overlay.height);
+fileInput.addEventListener('change', function() {
+  if (!fileInput.files||!fileInput.files.length) return;
+  var file=fileInput.files[0];
+  fileNameDisplay.textContent=file.name;
+  if(videoFileUrl) URL.revokeObjectURL(videoFileUrl);
+  videoFileUrl=URL.createObjectURL(file);
+  vid.muted=false;
+  vid.src=videoFileUrl; vid.load();
+  vid.onloadedmetadata=function(){
+    durationDisplay.textContent=formatTime(vid.duration);
+    seekBar.value=0; timeDisplay.textContent='0:00';
+    btnVideoStart.disabled=false;
+    videoPlayerControls.classList.add('visible');
+    btnPlayPause.innerHTML='&#9654;';
+    statusLine.textContent='Video ready ('+formatTime(vid.duration)+'). Click Start Analysis.';
+  };
+});
 
-  statusLine.textContent = 'Stopped. Analyzing ' + recordedFrames.length + ' frames…';
-  btnStop.disabled = true; btnStart.disabled = false;
+btnVideoStart.addEventListener('click', async function() {
+  btnVideoStart.disabled=true;
+  if (!await loadLandmarker()) { btnVideoStart.disabled=false; return; }
 
-  clearCheckpoint();
-  showResult(recordedFrames, durationSec, irisVisible);
-  statusLine.textContent = 'Done. See analysis below.';
+  if (vid.ended||vid.currentTime>=vid.duration-0.1) {
+    vid.currentTime=0;
+    await new Promise(function(res){ vid.onseeked=res; });
+  }
+
+  frameCount=0; irisVisible=0; prevGaze=null; prevLogGaze=null;
+  recordedFrames=[]; hBuf=[]; vBuf=[];
+  document.getElementById('result').style.display='none';
+
+  await vid.play().catch(function(){});
+  btnPlayPause.innerHTML='&#9646;&#9646;';
+  statusLine.textContent='Analyzing video…';
+  btnVideoStop.disabled=false;
+  intervalId=setInterval(captureAndProcess,333);
+
+  vid.onended=function(){ if(intervalId) doStop(); };
+});
+
+btnVideoStop.addEventListener('click', function(){ doStop(); });
+
+// ── Video player controls ─────────────────────────────────────────────────────
+
+btnPlayPause.addEventListener('click', function() {
+  if (!vid.src&&!vid.srcObject) return;
+  if (vid.paused||vid.ended) { vid.play(); btnPlayPause.innerHTML='&#9646;&#9646;'; }
+  else { vid.pause(); btnPlayPause.innerHTML='&#9654;'; }
+});
+
+var userSeeking=false;
+seekBar.addEventListener('mousedown', function(){ userSeeking=true; });
+document.addEventListener('mouseup',  function(){ userSeeking=false; });
+seekBar.addEventListener('input', function() {
+  if (!vid.duration) return;
+  vid.currentTime=(seekBar.value/1000)*vid.duration;
+});
+
+vid.addEventListener('timeupdate', function() {
+  if (!isVideoMode||!vid.duration) return;
+  if (!userSeeking) seekBar.value=(vid.currentTime/vid.duration)*1000;
+  timeDisplay.textContent=formatTime(vid.currentTime);
+});
+
+vid.addEventListener('play',  function(){ if(isVideoMode) btnPlayPause.innerHTML='&#9646;&#9646;'; });
+vid.addEventListener('pause', function(){ if(isVideoMode) btnPlayPause.innerHTML='&#9654;'; });
+
+speedSelect.addEventListener('change', function(){
+  vid.playbackRate=parseFloat(speedSelect.value);
+});
+
+volumeBar.addEventListener('input', function(){
+  var v=parseFloat(volumeBar.value);
+  vid.volume=v; vid.muted=(v===0);
 });
 </script>
 
